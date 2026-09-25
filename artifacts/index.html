@@ -3,9 +3,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HTML artifacts</title>
-<style>body { font: 16px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; color-scheme: light dark; } li { margin-bottom: 1rem; } small { color: GrayText; }</style>
-<h1>HTML artifacts</h1>
-<ul>
-<li><a href="/claude-context-compare/">Claude Code startup context</a> <small>2026-09-25</small><br>Tokens Claude Code loads before the first message, by model and settings.</li>
-</ul>
-<p><small><a href="https://github.com/lttr/html">Source</a></small></p>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lttr/puleo@0.8.1/output/puleo.min.css">
+<style>
+  main { padding: var(--space-6) var(--space-4); }
+  li + li { margin-block-start: var(--space-4); }
+  small { color: var(--text-color-2); }
+</style>
+<main class="p-prose">
+  <h1 class="p-heading-2">HTML artifacts</h1>
+  <ul>
+    <li><a href="/claude-context-compare/">Claude Code startup context</a> <small class="p-secondary-text-regular">2026-09-25</small><br>Tokens Claude Code loads before the first message, by model and settings.</li>
+  </ul>
+  <p><small class="p-secondary-text-regular"><a href="https://github.com/lttr/html">Source</a></small></p>
+</main>
