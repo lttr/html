@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo Cruiser — stack comparison</title>
+<style>
+:root{
+  --bg:#0f1115; --panel:#161920; --panel2:#1c2029; --line:#2a2f3a; --text:#e6e8ee; --muted:#9aa2b1; --dim:#6c7383;
+  --accent:#7cc4ff; --win:#f2c14e; --win-bg:rgba(242,193,78,.10);
+  --s1:#8a3232; --s2:#8c5726; --s3:#666233; --s4:#3b6b45; --s5:#16875a;
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",Ubuntu,Cantarell,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono","DejaVu Sans Mono",monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color:var(--text);font:15px/1.55 var(--font);-webkit-text-size-adjust:100%}
+body{margin:0}
+main{max-width:1180px;margin:0 auto;padding:40px 24px 64px}
+h1{font-size:clamp(1.5rem,3.2vw,2.1rem);line-height:1.2;margin:0 0 .5rem;letter-spacing:-.01em}
+h2{font-size:1.15rem;margin:0 0 .25rem;letter-spacing:.01em}
+.sub{color:var(--muted);margin:0 0 1rem;font-size:.92rem}
+section{margin-top:44px}
+.lead{color:var(--muted);max-width:75ch;margin:0}
+.callout{margin-top:22px;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline;padding:16px 20px;border:1px solid rgba(242,193,78,.45);background:var(--win-bg);border-radius:12px}
+.callout .w{font-size:1.35rem;font-weight:650;color:var(--win)}
+.callout .w b{font-variant-numeric:tabular-nums}
+.callout .r{color:var(--text);font-size:1.02rem}
+.callout .r b{font-variant-numeric:tabular-nums}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+/* ranking */
+.rank{display:grid;grid-template-columns:minmax(120px,190px) 1fr;gap:8px 14px;align-items:center}
+.rank .lbl{display:flex;gap:8px;align-items:baseline;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank .pos{color:var(--dim);font-variant-numeric:tabular-nums;width:1.4em;text-align:right;flex:none}
+.rank .track{position:relative;height:24px;background:var(--panel2);border-radius:6px}
+.rank .bar{height:100%;border-radius:6px;background:#3d4a62}
+.rank .val{position:absolute;top:0;bottom:0;display:flex;align-items:center;padding-left:8px;font-variant-numeric:tabular-nums;font-weight:600;font-size:.88rem}
+.rank .win .bar{background:var(--win)}
+.rank .win.lbl{color:var(--win);font-weight:650}
+.rank .ru .bar{background:#a6b3c9}
+.axis{grid-column:2;display:flex;justify-content:space-between;color:var(--dim);font-size:.75rem;font-variant-numeric:tabular-nums}
+/* weights */
+.weights{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
+.wt{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.wt .top{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.wt .nm{font-weight:600}
+.wt .pc{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:650}
+.wt .wbar{height:6px;background:var(--panel2);border-radius:3px;margin:8px 0 10px}
+.wt .wbar i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.wt p{margin:0;color:var(--muted);font-size:.87rem}
+/* tables */
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:.9rem}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:center;vertical-align:middle}
+thead th{position:sticky;top:0;background:var(--panel2);font-weight:600;font-size:.78rem;color:var(--muted);line-height:1.25;min-width:84px}
+thead th .w{display:block;color:var(--accent);font-variant-numeric:tabular-nums;margin-top:3px}
+th.app, td.app{position:sticky;left:0;z-index:1;text-align:left;background:var(--panel);min-width:170px;border-right:1px solid var(--line)}
+thead th.app{z-index:2;background:var(--panel2)}
+tbody tr.row{cursor:pointer}
+tbody tr.row:hover td{filter:brightness(1.12)}
+tbody tr.row:hover td.app{background:#1b1f28}
+td.app .t{display:inline-block;width:1em;color:var(--dim);transition:transform .15s}
+tr.open td.app .t{transform:rotate(90deg)}
+tr.win td.app{color:var(--win);font-weight:650}
+td.sc{font-weight:650;font-variant-numeric:tabular-nums;color:#fff;border-left:1px solid var(--bg)}
+td.s1{background:var(--s1)} td.s2{background:var(--s2)} td.s3{background:var(--s3)} td.s4{background:var(--s4)} td.s5{background:var(--s5)}
+td.tot{font-weight:700;font-variant-numeric:tabular-nums;font-size:1rem;min-width:70px}
+tr.win td.tot{color:var(--win)}
+tr.detail td{background:var(--panel2);text-align:left;padding:14px 16px}
+.dwrap{position:sticky;left:16px;max-width:min(1100px,calc(100vw - 82px))}
+.dwrap .meta{color:var(--dim);font-size:.8rem;margin-bottom:8px}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px 22px;margin:0;max-width:900px}
+.notes div{font-size:.86rem;color:var(--muted)}
+.notes b{color:var(--text);font-weight:600}
+.notes .chip{display:inline-block;min-width:1.5em;text-align:center;border-radius:4px;color:#fff;font-weight:650;font-size:.78rem;margin-right:6px;padding:0 4px}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between;margin:10px 0 12px}
+.legend{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:.8rem}
+.legend span{display:inline-flex;width:24px;height:20px;border-radius:4px;align-items:center;justify-content:center;color:#fff;font-weight:650;font-size:.78rem}
+button{font:inherit;font-size:.82rem;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:5px 12px;cursor:pointer}
+button:hover{border-color:#3d4556}
+.facts td{text-align:left}
+.facts td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.facts thead th{text-align:left}
+.facts thead th.num{text-align:right}
+.facts td.deps{color:var(--muted);min-width:240px}
+/* directions */
+ol.dir{margin:0;padding:0;list-style:none;counter-reset:d;display:grid;gap:10px}
+ol.dir li{counter-increment:d;position:relative;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 16px 13px 50px;max-width:none}
+ol.dir li::before{content:counter(d);position:absolute;left:16px;top:13px;width:22px;height:22px;border-radius:50%;background:var(--panel2);color:var(--muted);font-size:.78rem;display:flex;align-items:center;justify-content:center;font-weight:650}
+ol.dir li:first-child{border-color:rgba(242,193,78,.45)}
+ol.dir li:first-child::before{background:var(--win);color:#1a1a1a}
+ol.dir strong{color:var(--text)}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel2);padding:1px 5px;border-radius:4px}
+footer{margin-top:48px;color:var(--dim);font-size:.8rem}
+@media (max-width:640px){
+  main{padding:24px 14px 48px}
+  .rank{grid-template-columns:112px 1fr;gap:7px 8px;font-size:.84rem}
+  .rank .lbl{white-space:normal;line-height:1.2}
+  .dwrap{max-width:calc(100vw - 62px)}
+  .notes{grid-template-columns:1fr}
+  .weights{grid-template-columns:1fr}
+  th.app,td.app{min-width:128px;max-width:128px;white-space:normal}
+  thead th{min-width:72px}
+  ol.dir li{padding-left:44px}
+  ol.dir li::before{left:12px}
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="title"></h1>
+    <p class="lead" id="context"></p>
+    <div class="callout" id="callout"></div>
+  </header>
+
+  <section>
+    <h2>Weighted total</h2>
+    <p class="sub">Σ(weight × score) / 5, on a 0–100 scale.</p>
+    <div class="card"><div class="rank" id="rank"></div></div>
+  </section>
+
+  <section>
+    <h2>Weights</h2>
+    <p class="sub">Eight criteria, weights sum to <span id="wsum"></span>.</p>
+    <div class="weights" id="weights"></div>
+  </section>
+
+  <section>
+    <h2>Score matrix</h2>
+    <p class="sub">Scores 1–5, apps sorted by weighted total. Hover a cell for its note, or click a row to show all notes.</p>
+    <div class="toolbar">
+      <div class="legend">Score <span style="background:var(--s1)">1</span><span style="background:var(--s2)">2</span><span style="background:var(--s3)">3</span><span style="background:var(--s4)">4</span><span style="background:var(--s5)">5</span></div>
+      <button id="toggleAll" type="button">Expand all notes</button>
+    </div>
+    <div class="scroll"><table id="matrix"></table></div>
+  </section>
+
+  <section>
+    <h2>Facts</h2>
+    <p class="sub">App code only (non-blank LOC, excluding tests, locks and vendored code).</p>
+    <div class="scroll"><table class="facts" id="facts"></table></div>
+  </section>
+
+  <section>
+    <h2>Directions</h2>
+    <ol class="dir" id="dirs"></ol>
+  </section>
+
+  <footer>Generated from the comparison data. All totals are computed in the page from the embedded scores.</footer>
+</main>
+
+<script type="application/json" id="data">{
+ "title": "Photo Cruiser — final comparison of 9 stacks",
+ "context": "Personal photo app for Lukas (Pop!_OS / COSMIC, Wayland), potentially shared with friends on Windows/macOS. Built with AI agents. Must be fast; future: Darktable-level processing (local contrast, sharpen), format conversion, Samba shares. Same feature set in all 9: folder browse with arrows, natural sort, AVIF+HEIC, crop tool with 50% dim.",
+ "criteria": [
+  {
+   "id": "speed",
+   "name": "Speed, no lag",
+   "weight": 20,
+   "note": "Live previews for editing must hit ~60 fps. Native GPU stacks render directly; web views pay decode/transfer costs (Tauri: Rust→JPEG→WebKit; web: HEIC WASM ~1 s/photo, 8-bit canvas)."
+  },
+  {
+   "id": "adv",
+   "name": "Advanced processing (Darktable-level)",
+   "weight": 18,
+   "note": "Needs 16-bit/float pipeline + GPU shader preview + native libs (libvips, libheif, custom local-Laplacian). Rust stacks own the GPU; Electron has sharp/libvips (CLAHE, sharpen) + WebGL/WebGPU; browsers are 8-bit canvas + WASM."
+  },
+  {
+   "id": "dist",
+   "name": "Distributability (friends on other OSes)",
+   "weight": 15,
+   "note": "Windows/macOS/Linux builds. libheif must be bundled per OS for Rust apps. COSMIC/GTK4/kitty are Linux-first; web is a URL but limited (no paths, Firefox upload prompt)."
+  },
+  {
+   "id": "test",
+   "name": "Agent-driven & headless testing",
+   "weight": 14,
+   "note": "Can an agent drive real input + screenshot without touching the user's desktop? Measured in this project."
+  },
+  {
+   "id": "ease",
+   "name": "Ease of development, obstacles hit",
+   "weight": 12,
+   "note": "Obstacles actually encountered while building the 3 rounds."
+  },
+  {
+   "id": "native",
+   "name": "Native look & feel",
+   "weight": 8,
+   "note": "On COSMIC. Lower weight because friends use other OSes where a COSMIC look is irrelevant."
+  },
+  {
+   "id": "code",
+   "name": "Code size & complexity (techs, deps, moving parts)",
+   "weight": 7,
+   "note": "Non-blank LOC of app code (excl. tests/locks/vendored), languages, dependency weight, number of processes/config surfaces."
+  },
+  {
+   "id": "linux",
+   "name": "Linux desktop integration",
+   "weight": 6,
+   "note": "Portals, dialogs, theme following, Wayland, GIO/GVfs (Samba shares as paths)."
+  }
+ ],
+ "apps": [
+  {
+   "id": "web",
+   "name": "Browser (static)",
+   "loc": 285,
+   "size": "static files",
+   "langs": "JS/HTML/CSS",
+   "deps": "libheif-js (vendored WASM)",
+   "scores": {
+    "speed": 3,
+    "adv": 2,
+    "dist": 5,
+    "test": 5,
+    "ease": 5,
+    "native": 2,
+    "code": 5,
+    "linux": 1
+   },
+   "notes": {
+    "speed": "HEIC via WASM worker ~0.8–1.5 s; held arrow fixed with single-decode queue",
+    "adv": "8-bit canvas, WASM only, can't write files outside Chromium",
+    "dist": "Just a URL; every OS",
+    "test": "Playwright, real browser input, Chromium + Firefox",
+    "ease": "Fewest problems; Firefox pointercancel fix",
+    "native": "Web UI",
+    "code": "285 LOC, no build step",
+    "linux": "Can't open paths; Firefox shows 'upload N files?'"
+   }
+  },
+  {
+   "id": "electron",
+   "name": "Electron",
+   "loc": 313,
+   "size": "~300 MB",
+   "langs": "JS",
+   "deps": "electron, libheif-js",
+   "scores": {
+    "speed": 4,
+    "adv": 4,
+    "dist": 5,
+    "test": 4,
+    "ease": 5,
+    "native": 2,
+    "code": 4,
+    "linux": 3
+   },
+   "notes": {
+    "speed": "Chromium GPU, WebGL/WebGPU available; HEIC decode blocks main 0.15–0.5 s",
+    "adv": "sharp/libvips (CLAHE, sharpen, conversions) + WebGL/WebGPU; 8-bit display path",
+    "dist": "electron-builder for all OSes; heavy",
+    "test": "sendInputEvent + capturePage self-test; Playwright _electron possible",
+    "ease": "Smooth; only argv quirks",
+    "native": "Web UI, can bridge COSMIC theme via CSS vars",
+    "code": "3 processes (main/preload/renderer), custom protocol",
+    "linux": "Portal dialogs; harmless Wayland/Vulkan warning"
+   }
+  },
+  {
+   "id": "deno",
+   "name": "Deno desktop (CEF)",
+   "loc": 363,
+   "size": "448 MB",
+   "langs": "TS/JS",
+   "deps": "Deno 2.9 experimental runtime + CEF, dbus-next, libheif-js",
+   "scores": {
+    "speed": 4,
+    "adv": 3,
+    "dist": 3,
+    "test": 4,
+    "ease": 2,
+    "native": 2,
+    "code": 3,
+    "linux": 2
+   },
+   "notes": {
+    "speed": "Chromium rendering, same as Electron",
+    "adv": "Chromium GPU + Deno FFI/npm; experimental surface",
+    "dist": "Cross-platform in theory, experimental, 448 MB",
+    "test": "Playwright over CDP via undocumented LAUFEY_REMOTE_DEBUGGING_PORT",
+    "ease": "--inspect-renderer broken, Deno.args mangled, no dialog API, typed bind quirks",
+    "native": "Web UI; COSMIC title bar + real portal dialog",
+    "code": "Deno.serve + bindings + DBus portal",
+    "linux": "Manual XDG portal via DBus"
+   }
+  },
+  {
+   "id": "tauri",
+   "name": "Tauri v2",
+   "loc": 560,
+   "size": "8 MB",
+   "langs": "Rust + JS",
+   "deps": "tauri, WebKitGTK, libheif-rs (432 crates)",
+   "scores": {
+    "speed": 3,
+    "adv": 3,
+    "dist": 4,
+    "test": 2,
+    "ease": 3,
+    "native": 2,
+    "code": 2,
+    "linux": 3
+   },
+   "notes": {
+    "speed": "WebKitGTK; HEIC/AVIF decoded in Rust and re-encoded to JPEG (2500² HEIC ~440 ms); preview transfer bottleneck",
+    "adv": "Strong Rust core, but every preview crosses Rust→webview unless done in WebGL",
+    "dist": "Small installers on all OSes, but 3 different webviews (WebView2/WebKit/WebKitGTK)",
+    "test": "Only synthetic DOM events from JS; desktop screenshot failed; WebDriver route unverified",
+    "ease": "System -dev packages, CSP/scope/capabilities config, WebKitGTK lacks AVIF+HEIC",
+    "native": "Web UI",
+    "code": "2 languages, conf.json, capabilities, CSP, custom scheme",
+    "linux": "Portal dialog via plugin"
+   }
+  },
+  {
+   "id": "cosmic",
+   "name": "COSMIC (libcosmic)",
+   "loc": 722,
+   "size": "41 MB",
+   "langs": "Rust",
+   "deps": "libcosmic (git main), 631 crates, libheif-rs",
+   "scores": {
+    "speed": 5,
+    "adv": 4,
+    "dist": 1,
+    "test": 2,
+    "ease": 2,
+    "native": 5,
+    "code": 3,
+    "linux": 5
+   },
+   "notes": {
+    "speed": "wgpu, native textures, no encode",
+    "adv": "iced shader widgets possible; API churn",
+    "dist": "Linux/COSMIC-first",
+    "test": "Messages injected into update(); widget event path untested; window-own screenshot",
+    "ease": "API churn vs examples, cargo cache wiped, slow builds, off-screen window → stray wtype keys to Firefox",
+    "native": "The real thing, follows live system theme",
+    "code": "Single language, 631 crates, git dependency",
+    "linux": "Native COSMIC, portals, theme"
+   }
+  },
+  {
+   "id": "slint",
+   "name": "Slint (cosmic-dark)",
+   "loc": 536,
+   "size": "22 MB",
+   "langs": "Rust + .slint DSL",
+   "deps": "slint 1.18, rfd, libheif-rs",
+   "scores": {
+    "speed": 5,
+    "adv": 4,
+    "dist": 4,
+    "test": 4,
+    "ease": 4,
+    "native": 4,
+    "code": 4,
+    "linux": 3
+   },
+   "notes": {
+    "speed": "Native renderer (femtovg/skia/software), images from pixel buffers",
+    "adv": "Rust core + rendering notifier / GPU underlay; less direct than egui",
+    "dist": "Single binary per OS; per-OS styles (fluent/cupertino/cosmic); check licence (GPLv3/royalty-free/commercial)",
+    "test": "Headless testing backend, Window::dispatch_event, take_snapshot; element ids need debug builds",
+    "ease": "Few gotchas (Image sizing, checkable button style)",
+    "native": "Convincing COSMIC imitation, hardcoded palette, slightly smaller widgets",
+    "code": "Declarative UI file + Rust logic",
+    "linux": "rfd portal dialog; doesn't read COSMIC theme"
+   }
+  },
+  {
+   "id": "egui",
+   "name": "egui (eframe)",
+   "loc": 537,
+   "size": "21 MB",
+   "langs": "Rust",
+   "deps": "eframe/egui 0.36, egui_kittest, rfd, libheif-rs",
+   "scores": {
+    "speed": 5,
+    "adv": 5,
+    "dist": 4,
+    "test": 5,
+    "ease": 4,
+    "native": 1,
+    "code": 4,
+    "linux": 3
+   },
+   "notes": {
+    "speed": "wgpu immediate mode, 60 fps native",
+    "adv": "Custom wgpu paint callbacks in the UI, compute shaders, same Rust core for export — best fit for editing tools",
+    "dist": "Single binary per OS (wgpu everywhere); MIT/Apache",
+    "test": "egui_kittest: events through egui input + hit-testing, accessibility-tree queries, offscreen wgpu snapshots, plain cargo test",
+    "ease": "Texture cap 2048 in test backend, harness.run panic with spinner",
+    "native": "Own look, ignores COSMIC theme",
+    "code": "Single language, one process",
+    "linux": "rfd portal dialog"
+   }
+  },
+  {
+   "id": "gtk4",
+   "name": "GTK4 + libadwaita",
+   "loc": 616,
+   "size": "1.5 MB",
+   "langs": "Rust (gtk-rs)",
+   "deps": "system GTK 4.14, libadwaita 1.5, libheif",
+   "scores": {
+    "speed": 4,
+    "adv": 3,
+    "dist": 2,
+    "test": 2,
+    "ease": 3,
+    "native": 3,
+    "code": 3,
+    "linux": 5
+   },
+   "notes": {
+    "speed": "GSK GPU renderer, MemoryTexture upload",
+    "adv": "GLArea / GSK shaders possible, more ceremony",
+    "dist": "Painful on Windows/macOS",
+    "test": "Emit controller signals in-process; AT-SPI reads but can't click; render to PNG needs retries",
+    "ease": "-dev packages, capture-phase keys, NON_UNIQUE, GObject idioms",
+    "native": "COSMIC colours via exported gtk.css, Adwaita shapes",
+    "code": "System C libs, GObject model",
+    "linux": "Best-in-class: GIO/GVfs (Samba as paths), portals"
+   }
+  },
+  {
+   "id": "kitty",
+   "name": "Kitty terminal",
+   "loc": 696,
+   "size": "1.7 MB",
+   "langs": "Rust",
+   "deps": "image, libc, base64, libheif-rs (119 crates)",
+   "scores": {
+    "speed": 3,
+    "adv": 2,
+    "dist": 1,
+    "test": 3,
+    "ease": 3,
+    "native": 1,
+    "code": 3,
+    "linux": 3
+   },
+   "notes": {
+    "speed": "Shared-memory transfer, fast, but terminal-bound",
+    "adv": "Engine fine, editing UX in a terminal is awkward",
+    "dist": "Needs kitty (or compatible) terminal",
+    "test": "Remote control sends real escape sequences; visuals need desktop screenshot",
+    "ease": "Protocol subtleties: linear blending (alpha 78%), CSI 2J frees images",
+    "native": "Terminal",
+    "code": "Low-level protocol, raw mode, signals",
+    "linux": "Works over ssh/gvfs paths"
+   }
+  }
+ ],
+ "winner": "egui",
+ "runner_up": "slint",
+ "directions": [
+  "Winner: egui. Highest weighted score: fastest path to GPU-accelerated Darktable-style tools, the most agent-friendly testing (headless kittest with real input path + snapshots), single binary on Linux/Windows/macOS, MIT/Apache.",
+  "Close runner-up: Slint (within ~2 points). Choose it instead if native look matters more than custom GPU tooling — cosmic style on COSMIC, fluent on Windows, cupertino on macOS. Check its licence terms first.",
+  "Pragmatic web choice: Electron (81). Best if you'd rather write the UI in TS/Vue; use sharp/libvips + WebGL for previews. Ignore Tauri for this app: WebKitGTK lacks AVIF/HEIC and the preview transfer is a bottleneck.",
+  "Architecture: a Rust workspace with a UI-agnostic `core` crate (decode via image + libheif, f32 linear pipeline, local contrast via local-Laplacian/guided filter, sharpen, export) and a thin egui shell. GPU (wgpu) shaders for live preview, CPU/full-res for export. This also keeps a Slint swap possible.",
+  "Testing: kittest snapshot tests for UI flows + golden-image tests for each processing op in core; run in CI on Linux/Windows/macOS.",
+  "Distribution: GitHub Releases via cargo-dist; bundle libheif per OS (vcpkg on Windows, Homebrew on macOS) or an AppImage/Flatpak on Linux. Samba: start with GVfs-mounted paths, add a native SMB client later.",
+  "Keep kitty as a fun side tool; park COSMIC (Linux-only) and GTK4 unless the app becomes Linux-only."
+ ]
+}</script>
+<script>
+(() => {
+  const D = JSON.parse(document.getElementById('data').textContent);
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmt = n => n.toFixed(1);
+  const crit = D.criteria;
+  const total = a => crit.reduce((s, c) => s + c.weight * a.scores[c.id], 0) / 5;
+  const apps = D.apps.map(a => ({...a, total: total(a)})).sort((a, b) => b.total - a.total);
+  const byId = Object.fromEntries(apps.map(a => [a.id, a]));
+  const win = byId[D.winner], ru = byId[D.runner_up];
+
+  // ---- consistency check
+  const expected = {egui:84.4, slint:82.8, electron:81.0, web:71.6, cosmic:66.0, deno:61.6, gtk4:60.6, tauri:57.2, kitty:47.2};
+  const wsum = crit.reduce((s, c) => s + c.weight, 0);
+  const bad = Object.entries(expected).filter(([id, v]) => !byId[id] || Math.abs(byId[id].total - v) > 1e-9);
+  console.assert(bad.length === 0, 'Totals mismatch', bad);
+  console.assert(wsum === 100, 'Weights do not sum to 100', wsum);
+  console.assert(apps[0].id === D.winner && apps[1].id === D.runner_up, 'Winner/runner-up mismatch');
+  window.__totalsOK = bad.length === 0 && wsum === 100 && apps[0].id === D.winner && apps[1].id === D.runner_up;
+  console.log('totals check:', window.__totalsOK ? 'PASS' : 'FAIL', apps.map(a => a.id + '=' + fmt(a.total)).join(' '));
+
+  // ---- header
+  $('title').textContent = D.title;
+  $('context').textContent = D.context;
+  $('callout').innerHTML =
+    `<span class="w">Winner: ${esc(win.name.replace(/ \(.*\)/, ''))} (<b>${fmt(win.total)}</b>)</span>` +
+    `<span class="r">runner-up ${esc(ru.name.replace(/ \(.*\)/, ''))} (<b>${fmt(ru.total)}</b>)</span>`;
+
+  // ---- ranking
+  $('rank').innerHTML = apps.map((a, i) => {
+    const cls = a.id === D.winner ? 'win' : a.id === D.runner_up ? 'ru' : '';
+    const dark = cls === 'win' || cls === 'ru';
+    return `<div class="lbl ${cls}"><span class="pos">${i + 1}</span><span>${esc(a.name)}</span></div>` +
+      `<div class="track ${cls}"><div class="bar" style="width:${a.total}%"></div>` +
+      `<span class="val" style="left:${dark ? 0 : a.total + '%'};${dark ? 'color:#15171c' : ''}">${fmt(a.total)}</span></div>`;
+  }).join('') + `<div class="axis"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>`;
+
+  // ---- weights
+  $('wsum').textContent = wsum;
+  const wmax = Math.max(...crit.map(c => c.weight));
+  $('weights').innerHTML = crit.map(c =>
+    `<div class="wt"><div class="top"><span class="nm">${esc(c.name)}</span><span class="pc">${c.weight}%</span></div>` +
+    `<div class="wbar"><i style="width:${c.weight / wmax * 100}%"></i></div><p>${esc(c.note)}</p></div>`).join('');
+
+  // ---- matrix
+  const short = {speed:'Speed', adv:'Advanced processing', dist:'Distribution', test:'Agent testing', ease:'Ease of dev', native:'Native look', code:'Code size', linux:'Linux integration'};
+  const head = `<thead><tr><th class="app">App</th>${crit.map(c =>
+      `<th title="${esc(c.name)}">${esc(short[c.id] || c.name)}<span class="w">${c.weight}%</span></th>`).join('')}<th>Total</th></tr></thead>`;
+  const body = apps.map(a => {
+    const cells = crit.map(c => {
+      const s = a.scores[c.id];
+      return `<td class="sc s${s}" title="${esc(c.name)}: ${s}/5 — ${esc(a.notes[c.id])}">${s}</td>`;
+    }).join('');
+    const notes = crit.map(c => {
+      const s = a.scores[c.id];
+      return `<div><span class="chip" style="background:var(--s${s})">${s}</span><b>${esc(short[c.id])}:</b> ${esc(a.notes[c.id])}</div>`;
+    }).join('');
+    return `<tr class="row${a.id === D.winner ? ' win' : ''}" data-id="${a.id}" tabindex="0" aria-expanded="false">` +
+      `<td class="app"><span class="t">▸</span> ${esc(a.name)}</td>${cells}<td class="tot">${fmt(a.total)}</td></tr>` +
+      `<tr class="detail" data-for="${a.id}" hidden><td colspan="${crit.length + 2}"><div class="dwrap"><div class="meta">${esc(a.name)} · ${esc(a.langs)} · ${a.loc} LOC · ${esc(a.size)}</div><div class="notes">${notes}</div></div></td></tr>`;
+  }).join('');
+  $('matrix').innerHTML = head + `<tbody>${body}</tbody>`;
+
+  const setOpen = (row, open) => {
+    row.classList.toggle('open', open);
+    row.setAttribute('aria-expanded', open);
+    row.nextElementSibling.hidden = !open;
+  };
+  const rows = [...document.querySelectorAll('#matrix tr.row')];
+  rows.forEach(r => {
+    r.addEventListener('click', () => { setOpen(r, !r.classList.contains('open')); syncBtn(); });
+    r.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); r.click(); } });
+  });
+  const btn = $('toggleAll');
+  const syncBtn = () => { btn.textContent = rows.every(r => r.classList.contains('open')) ? 'Collapse all notes' : 'Expand all notes'; };
+  btn.addEventListener('click', () => {
+    const open = !rows.every(r => r.classList.contains('open'));
+    rows.forEach(r => setOpen(r, open)); syncBtn();
+  });
+
+  // ---- facts
+  $('facts').innerHTML =
+    `<thead><tr><th class="app">App</th><th class="num">LOC</th><th>Output size</th><th>Languages</th><th>Dependencies</th><th class="num">Total</th></tr></thead><tbody>` +
+    apps.map(a => `<tr class="${a.id === D.winner ? 'win' : ''}"><td class="app">${esc(a.name)}</td><td class="num">${a.loc}</td>` +
+      `<td class="num" style="text-align:left">${esc(a.size)}</td><td>${esc(a.langs)}</td><td class="deps">${esc(a.deps)}</td><td class="num tot">${fmt(a.total)}</td></tr>`).join('') +
+    `</tbody>`;
+
+  // ---- directions
+  const md = s => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/^([^.:]{1,40}:)/, '<strong>$1</strong>');
+  $('dirs').innerHTML = D.directions.map(d => `<li>${md(d)}</li>`).join('');
+})();
+</script>
+</body>
+</html>
