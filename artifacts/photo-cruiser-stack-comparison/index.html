@@ -28,7 +28,7 @@ section{margin-top:44px}
 .callout .r b{font-variant-numeric:tabular-nums}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
 /* ranking */
-.rank{display:grid;grid-template-columns:minmax(120px,190px) 1fr;gap:8px 14px;align-items:center}
+.rank{display:grid;grid-template-columns:minmax(120px,260px) 1fr;gap:8px 14px;align-items:center}
 .rank .lbl{display:flex;gap:8px;align-items:baseline;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rank .pos{color:var(--dim);font-variant-numeric:tabular-nums;width:1.4em;text-align:right;flex:none}
 .rank .track{position:relative;height:24px;background:var(--panel2);border-radius:6px}
@@ -103,6 +103,7 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
   ol.dir li{padding-left:44px}
   ol.dir li::before{left:12px}
 }
+.verdict{flex-basis:100%;margin-top:8px;color:var(--muted);font-size:14px;line-height:1.5}.gate{font-size:11px;padding:1px 6px;border-radius:8px;background:#5a3a1a;color:#f3c58a;margin-left:6px;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -121,7 +122,7 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
 
   <section>
     <h2>Weights</h2>
-    <p class="sub">Eight criteria, weights sum to <span id="wsum"></span>.</p>
+    <p class="sub">Nine criteria, weights sum to <span id="wsum"></span>.</p>
     <div class="weights" id="weights"></div>
   </section>
 
@@ -150,38 +151,44 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
 </main>
 
 <script type="application/json" id="data">{
- "title": "Photo Cruiser — final comparison of 9 stacks",
- "context": "Personal photo app for Lukas (Pop!_OS / COSMIC, Wayland), potentially shared with friends on Windows/macOS. Built with AI agents. Must be fast; future: Darktable-level processing (local contrast, sharpen), format conversion, Samba shares. Same feature set in all 9: folder browse with arrows, natural sort, AVIF+HEIC, crop tool with 50% dim.",
+ "title": "Photo Cruiser — final comparison of 10 stacks",
+ "context": "Personal photo app for Lukas (Pop!_OS / COSMIC, Wayland), potentially shared with friends on Windows/macOS. Built with AI agents. Must be fast; future: Darktable-level processing (local contrast, sharpen), format conversion, Samba shares. Same feature set in all 10: folder browse with arrows, natural sort, AVIF+HEIC, crop tool with 50% dim.",
  "criteria": [
   {
    "id": "speed",
    "name": "Speed, no lag",
-   "weight": 20,
+   "weight": 18,
    "note": "Live previews for editing must hit ~60 fps. Native GPU stacks render directly; web views pay decode/transfer costs (Tauri: Rust→JPEG→WebKit; web: HEIC WASM ~1 s/photo, 8-bit canvas)."
   },
   {
    "id": "adv",
    "name": "Advanced processing (Darktable-level)",
-   "weight": 18,
+   "weight": 16,
    "note": "Needs 16-bit/float pipeline + GPU shader preview + native libs (libvips, libheif, custom local-Laplacian). Rust stacks own the GPU; Electron has sharp/libvips (CLAHE, sharpen) + WebGL/WebGPU; browsers are 8-bit canvas + WASM."
   },
   {
    "id": "dist",
    "name": "Distributability (friends on other OSes)",
-   "weight": 15,
+   "weight": 14,
    "note": "Windows/macOS/Linux builds. libheif must be bundled per OS for Rust apps. COSMIC/GTK4/kitty are Linux-first; web is a URL but limited (no paths, Firefox upload prompt)."
   },
   {
    "id": "test",
    "name": "Agent-driven & headless testing",
-   "weight": 14,
+   "weight": 13,
    "note": "Can an agent drive real input + screenshot without touching the user's desktop? Measured in this project."
   },
   {
    "id": "ease",
    "name": "Ease of development, obstacles hit",
-   "weight": 12,
+   "weight": 11,
    "note": "Obstacles actually encountered while building the 3 rounds."
+  },
+  {
+   "id": "ui",
+   "name": "UI breadth (forms, dialogs, multiple windows)",
+   "weight": 8,
+   "note": "Added after review: settings, export and share dialogs need real layouts, text fields, menus and OS windows. Immediate-mode egui draws in-canvas windows and fiddly forms."
   },
   {
    "id": "native",
@@ -192,7 +199,7 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
   {
    "id": "code",
    "name": "Code size & complexity (techs, deps, moving parts)",
-   "weight": 7,
+   "weight": 6,
    "note": "Non-blank LOC of app code (excl. tests/locks/vendored), languages, dependency weight, number of processes/config surfaces."
   },
   {
@@ -218,7 +225,8 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
     "ease": 5,
     "native": 2,
     "code": 5,
-    "linux": 1
+    "linux": 1,
+    "ui": 5
    },
    "notes": {
     "speed": "HEIC via WASM worker ~0.8–1.5 s; held arrow fixed with single-decode queue",
@@ -228,8 +236,10 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
     "ease": "Fewest problems; Firefox pointercancel fix",
     "native": "Web UI",
     "code": "285 LOC, no build step",
-    "linux": "Can't open paths; Firefox shows 'upload N files?'"
-   }
+    "linux": "Can't open paths; Firefox shows 'upload N files?'",
+    "ui": "HTML forms, but no OS windows"
+   },
+   "license": "MIT-style (own code); libheif-js LGPL"
   },
   {
    "id": "electron",
@@ -246,7 +256,8 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
     "ease": 5,
     "native": 2,
     "code": 4,
-    "linux": 3
+    "linux": 3,
+    "ui": 5
    },
    "notes": {
     "speed": "Chromium GPU, WebGL/WebGPU available; HEIC decode blocks main 0.15–0.5 s",
@@ -256,8 +267,10 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
     "ease": "Smooth; only argv quirks",
     "native": "Web UI, can bridge COSMIC theme via CSS vars",
     "code": "3 processes (main/preload/renderer), custom protocol",
-    "linux": "Portal dialogs; harmless Wayland/Vulkan warning"
-   }
+    "linux": "Portal dialogs; harmless Wayland/Vulkan warning",
+    "ui": "HTML forms + real BrowserWindows"
+   },
+   "license": "MIT"
   },
   {
    "id": "deno",
@@ -274,7 +287,8 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
     "ease": 2,
     "native": 2,
     "code": 3,
-    "linux": 2
+    "linux": 2,
+    "ui": 4
    },
    "notes": {
     "speed": "Chromium rendering, same as Electron",
@@ -284,8 +298,10 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
     "ease": "--inspect-renderer broken, Deno.args mangled, no dialog API, typed bind quirks",
     "native": "Web UI; COSMIC title bar + real portal dialog",
     "code": "Deno.serve + bindings + DBus portal",
-    "linux": "Manual XDG portal via DBus"
-   }
+    "linux": "Manual XDG portal via DBus",
+    "ui": "HTML forms; BrowserWindow API experimental"
+   },
+   "license": "MIT"
   },
   {
    "id": "tauri",
@@ -302,7 +318,8 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
     "ease": 3,
     "native": 2,
     "code": 2,
-    "linux": 3
+    "linux": 3,
+    "ui": 5
    },
    "notes": {
     "speed": "WebKitGTK; HEIC/AVIF decoded in Rust and re-encoded to JPEG (2500² HEIC ~440 ms); preview transfer bottleneck",
@@ -312,8 +329,10 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
     "ease": "System -dev packages, CSP/scope/capabilities config, WebKitGTK lacks AVIF+HEIC",
     "native": "Web UI",
     "code": "2 languages, conf.json, capabilities, CSP, custom scheme",
-    "linux": "Portal dialog via plugin"
-   }
+    "linux": "Portal dialog via plugin",
+    "ui": "HTML forms + real windows"
+   },
+   "license": "MIT/Apache-2.0"
   },
   {
    "id": "cosmic",
@@ -330,7 +349,8 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
     "ease": 2,
     "native": 5,
     "code": 3,
-    "linux": 5
+    "linux": 5,
+    "ui": 4
    },
    "notes": {
     "speed": "wgpu, native textures, no encode",
@@ -340,8 +360,10 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
     "ease": "API churn vs examples, cargo cache wiped, slow builds, off-screen window → stray wtype keys to Firefox",
     "native": "The real thing, follows live system theme",
     "code": "Single language, 631 crates, git dependency",
-    "linux": "Native COSMIC, portals, theme"
-   }
+    "linux": "Native COSMIC, portals, theme",
+    "ui": "Rich COSMIC widgets, dialogs, context menus"
+   },
+   "license": "MPL-2.0 (libcosmic)"
   },
   {
    "id": "slint",
@@ -352,24 +374,28 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
    "deps": "slint 1.18, rfd, libheif-rs",
    "scores": {
     "speed": 5,
-    "adv": 4,
+    "adv": 5,
     "dist": 4,
     "test": 4,
     "ease": 4,
     "native": 4,
     "code": 4,
-    "linux": 3
+    "linux": 3,
+    "ui": 5
    },
    "notes": {
     "speed": "Native renderer (femtovg/skia/software), images from pixel buffers",
-    "adv": "Rust core + rendering notifier / GPU underlay; less direct than egui",
+    "adv": "wgpu texture import (slint::Image::try_from(wgpu::Texture), unstable-wgpu feature, Rgba8Unorm only) — GPU preview stays on GPU",
     "dist": "Single binary per OS; per-OS styles (fluent/cupertino/cosmic); check licence (GPLv3/royalty-free/commercial)",
     "test": "Headless testing backend, Window::dispatch_event, take_snapshot; element ids need debug builds",
     "ease": "Few gotchas (Image sizing, checkable button style)",
     "native": "Convincing COSMIC imitation, hardcoded palette, slightly smaller widgets",
     "code": "Declarative UI file + Rust logic",
-    "linux": "rfd portal dialog; doesn't read COSMIC theme"
-   }
+    "linux": "rfd portal dialog; doesn't read COSMIC theme",
+    "ui": "Declarative layouts, Dialog/PopupWindow, real windows"
+   },
+   "license": "GPLv3 / royalty-free w/ attribution / commercial",
+   "gated": "Top score, but licence (GPLv3 / royalty-free with mandatory attribution / commercial) rejected"
   },
   {
    "id": "egui",
@@ -386,7 +412,8 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
     "ease": 4,
     "native": 1,
     "code": 4,
-    "linux": 3
+    "linux": 3,
+    "ui": 2
    },
    "notes": {
     "speed": "wgpu immediate mode, 60 fps native",
@@ -396,8 +423,10 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
     "ease": "Texture cap 2048 in test backend, harness.run panic with spinner",
     "native": "Own look, ignores COSMIC theme",
     "code": "Single language, one process",
-    "linux": "rfd portal dialog"
-   }
+    "linux": "rfd portal dialog",
+    "ui": "In-canvas floating windows, manual form layout, egui-style text fields"
+   },
+   "license": "MIT/Apache-2.0"
   },
   {
    "id": "gtk4",
@@ -414,7 +443,8 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
     "ease": 3,
     "native": 3,
     "code": 3,
-    "linux": 5
+    "linux": 5,
+    "ui": 5
    },
    "notes": {
     "speed": "GSK GPU renderer, MemoryTexture upload",
@@ -424,8 +454,10 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
     "ease": "-dev packages, capture-phase keys, NON_UNIQUE, GObject idioms",
     "native": "COSMIC colours via exported gtk.css, Adwaita shapes",
     "code": "System C libs, GObject model",
-    "linux": "Best-in-class: GIO/GVfs (Samba as paths), portals"
-   }
+    "linux": "Best-in-class: GIO/GVfs (Samba as paths), portals",
+    "ui": "Full native widget set, dialogs, menus"
+   },
+   "license": "LGPL (GTK) + MIT (gtk-rs)"
   },
   {
    "id": "kitty",
@@ -442,7 +474,8 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
     "ease": 3,
     "native": 1,
     "code": 3,
-    "linux": 3
+    "linux": 3,
+    "ui": 1
    },
    "notes": {
     "speed": "Shared-memory transfer, fast, but terminal-bound",
@@ -452,21 +485,68 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
     "ease": "Protocol subtleties: linear blending (alpha 78%), CSI 2J frees images",
     "native": "Terminal",
     "code": "Low-level protocol, raw mode, signals",
-    "linux": "Works over ssh/gvfs paths"
+    "linux": "Works over ssh/gvfs paths",
+    "ui": "Terminal only"
+   },
+   "license": "own code; kitty GPLv3 is just the host"
+  },
+  {
+   "id": "iced",
+   "name": "iced 0.14",
+   "loc": 678,
+   "size": "16 MB",
+   "langs": "Rust",
+   "deps": "iced 0.14, iced_test, rfd, ron, libheif-rs (~283 crates)",
+   "license": "MIT",
+   "scores": {
+    "speed": 5,
+    "adv": 5,
+    "dist": 4,
+    "test": 4,
+    "ease": 3,
+    "ui": 3,
+    "native": 3,
+    "code": 4,
+    "linux": 3
+   },
+   "notes": {
+    "speed": "Native wgpu like COSMIC; large textures upload async (one frame)",
+    "adv": "First-class wgpu shader widget, same stack libcosmic uses",
+    "dist": "Single 16 MB binary on Win/mac/Linux; libheif per OS",
+    "test": "iced_test Emulator runs the real app headless: click by text, raw mouse drags, GPU snapshots; arrow keys/subscriptions not supported (keys routed via canvas)",
+    "ease": "Clean Elm-style code; thin docs, had to read iced_test source",
+    "ui": "Real layouts + multi-window; basic widget set (iced_aw for more)",
+    "native": "Reads your COSMIC accent/radii/Open Sans → pill buttons in your beige accent; no COSMIC header bar, no live reload",
+    "code": "678 LOC incl. 133-line theme module",
+    "linux": "Wayland + portal dialog; no app id / live theme"
    }
   }
  ],
- "winner": "egui",
- "runner_up": "slint",
+ "winner": "iced",
+ "runner_up": "electron",
  "directions": [
-  "Winner: egui. Highest weighted score: fastest path to GPU-accelerated Darktable-style tools, the most agent-friendly testing (headless kittest with real input path + snapshots), single binary on Linux/Windows/macOS, MIT/Apache.",
-  "Close runner-up: Slint (within ~2 points). Choose it instead if native look matters more than custom GPU tooling — cosmic style on COSMIC, fluent on Windows, cupertino on macOS. Check its licence terms first.",
-  "Pragmatic web choice: Electron (81). Best if you'd rather write the UI in TS/Vue; use sharp/libvips + WebGL for previews. Ignore Tauri for this app: WebKitGTK lacks AVIF/HEIC and the preview transfer is a bottleneck.",
-  "Architecture: a Rust workspace with a UI-agnostic `core` crate (decode via image + libheif, f32 linear pipeline, local contrast via local-Laplacian/guided filter, sharpen, export) and a thin egui shell. GPU (wgpu) shaders for live preview, CPU/full-res for export. This also keeps a Slint swap possible.",
-  "Testing: kittest snapshot tests for UI flows + golden-image tests for each processing op in core; run in CI on Linux/Windows/macOS.",
-  "Distribution: GitHub Releases via cargo-dist; bundle libheif per OS (vcpkg on Windows, Homebrew on macOS) or an AppImage/Flatpak on Linux. Samba: start with GVfs-mounted paths, add a native SMB client later.",
-  "Keep kitty as a fun side tool; park COSMIC (Linux-only) and GTK4 unless the app becomes Linux-only."
- ]
+  "Winner: iced 0.14 (MIT). It is native wgpu, so it ties for fastest and has a first-class shader widget for Darktable-style previews. It has real layouts and multiple windows for forms and dialogs, headless iced_test tests, and one binary per OS. Its theme reads your COSMIC accent, radii and font.",
+  "Upgrade path: libcosmic is built on iced, so the code carries over if you ever want the full COSMIC look on Linux (MPL-2.0). Elsewhere, keep the plain iced theme.",
+  "If the licence is acceptable: Slint (87.2) is the best all-rounder. It has the best forms, built-in COSMIC/Fluent/Cupertino styles and wgpu texture import. GPLv3 means sharing the source; royalty-free requires an AboutSlint dialog or a badge.",
+  "Pragmatic web choice: Electron (82.2), if you prefer TS/Vue and accept ~300 MB and no native look. Use sharp/libvips plus WebGL for previews. Drop Tauri: WebKitGTK lacks AVIF/HEIC and every preview has to cross from Rust to the webview.",
+  "egui only for a pure tool UI. It ties iced on score, but its in-canvas windows and hand-built forms make app-style UI feel odd.",
+  "Architecture: a Rust workspace with a UI-free `core` crate (decode via image + libheif, f32 linear pipeline, local contrast via local Laplacian or a guided filter, sharpen, export). The iced shell stays thin, wgpu shaders do the live preview, and the CPU does full-resolution export.",
+  "Testing: iced_test flows plus golden-image tests per processing op, in CI on Linux, Windows and macOS. Route keyboard shortcuts through a widget, because iced_test does not feed subscriptions.",
+  "Distribution: GitHub Releases via cargo-dist. Bundle libheif per OS (vcpkg on Windows, Homebrew on macOS), and AppImage or Flatpak on Linux. For Samba, start with GVfs-mounted paths."
+ ],
+ "verdict": "Slint scores highest (87.2) but is out because of its licence (GPLv3 / royalty-free with attribution / commercial). Among the permissively licensed options, iced and egui tie at 80.2, and iced wins the tie on UI breadth and COSMIC theming. Electron scores 2 points more, but it is slower and heavier and has no native look; that 2-point gap is within the scoring noise.",
+ "expected": {
+  "web": 73.6,
+  "electron": 82.2,
+  "deno": 62.8,
+  "tauri": 60.6,
+  "cosmic": 67.2,
+  "slint": 87.2,
+  "egui": 80.2,
+  "gtk4": 63.8,
+  "kitty": 44.8,
+  "iced": 80.2
+ }
 }</script>
 <script>
 (() => {
@@ -481,13 +561,13 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
   const win = byId[D.winner], ru = byId[D.runner_up];
 
   // ---- consistency check
-  const expected = {egui:84.4, slint:82.8, electron:81.0, web:71.6, cosmic:66.0, deno:61.6, gtk4:60.6, tauri:57.2, kitty:47.2};
+  const expected = D.expected;
   const wsum = crit.reduce((s, c) => s + c.weight, 0);
   const bad = Object.entries(expected).filter(([id, v]) => !byId[id] || Math.abs(byId[id].total - v) > 1e-9);
   console.assert(bad.length === 0, 'Totals mismatch', bad);
   console.assert(wsum === 100, 'Weights do not sum to 100', wsum);
-  console.assert(apps[0].id === D.winner && apps[1].id === D.runner_up, 'Winner/runner-up mismatch');
-  window.__totalsOK = bad.length === 0 && wsum === 100 && apps[0].id === D.winner && apps[1].id === D.runner_up;
+  console.assert(win && ru, 'Winner/runner-up missing');
+  window.__totalsOK = bad.length === 0 && wsum === 100 && !!win && !!ru;
   console.log('totals check:', window.__totalsOK ? 'PASS' : 'FAIL', apps.map(a => a.id + '=' + fmt(a.total)).join(' '));
 
   // ---- header
@@ -495,13 +575,14 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
   $('context').textContent = D.context;
   $('callout').innerHTML =
     `<span class="w">Winner: ${esc(win.name.replace(/ \(.*\)/, ''))} (<b>${fmt(win.total)}</b>)</span>` +
-    `<span class="r">runner-up ${esc(ru.name.replace(/ \(.*\)/, ''))} (<b>${fmt(ru.total)}</b>)</span>`;
+    `<span class="r">runner-up ${esc(ru.name.replace(/ \(.*\)/, ''))} (<b>${fmt(ru.total)}</b>)</span>` +
+    (D.verdict ? `<div class="verdict">${esc(D.verdict)}</div>` : '');
 
   // ---- ranking
   $('rank').innerHTML = apps.map((a, i) => {
     const cls = a.id === D.winner ? 'win' : a.id === D.runner_up ? 'ru' : '';
     const dark = cls === 'win' || cls === 'ru';
-    return `<div class="lbl ${cls}"><span class="pos">${i + 1}</span><span>${esc(a.name)}</span></div>` +
+    return `<div class="lbl ${cls}"><span class="pos">${i + 1}</span><span>${esc(a.name)}${a.gated ? ' <span class="gate" title="' + esc(a.gated) + '">licence ⚠</span>' : ''}</span></div>` +
       `<div class="track ${cls}"><div class="bar" style="width:${a.total}%"></div>` +
       `<span class="val" style="left:${dark ? 0 : a.total + '%'};${dark ? 'color:#15171c' : ''}">${fmt(a.total)}</span></div>`;
   }).join('') + `<div class="axis"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>`;
@@ -514,7 +595,7 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
     `<div class="wbar"><i style="width:${c.weight / wmax * 100}%"></i></div><p>${esc(c.note)}</p></div>`).join('');
 
   // ---- matrix
-  const short = {speed:'Speed', adv:'Advanced processing', dist:'Distribution', test:'Agent testing', ease:'Ease of dev', native:'Native look', code:'Code size', linux:'Linux integration'};
+  const short = {ui:'UI breadth', speed:'Speed', adv:'Advanced processing', dist:'Distribution', test:'Agent testing', ease:'Ease of dev', native:'Native look', code:'Code size', linux:'Linux integration'};
   const head = `<thead><tr><th class="app">App</th>${crit.map(c =>
       `<th title="${esc(c.name)}">${esc(short[c.id] || c.name)}<span class="w">${c.weight}%</span></th>`).join('')}<th>Total</th></tr></thead>`;
   const body = apps.map(a => {
@@ -551,9 +632,9 @@ footer{margin-top:48px;color:var(--dim);font-size:.8rem}
 
   // ---- facts
   $('facts').innerHTML =
-    `<thead><tr><th class="app">App</th><th class="num">LOC</th><th>Output size</th><th>Languages</th><th>Dependencies</th><th class="num">Total</th></tr></thead><tbody>` +
+    `<thead><tr><th class="app">App</th><th class="num">LOC</th><th>Output size</th><th>Languages</th><th>Licence</th><th>Dependencies</th><th class="num">Total</th></tr></thead><tbody>` +
     apps.map(a => `<tr class="${a.id === D.winner ? 'win' : ''}"><td class="app">${esc(a.name)}</td><td class="num">${a.loc}</td>` +
-      `<td class="num" style="text-align:left">${esc(a.size)}</td><td>${esc(a.langs)}</td><td class="deps">${esc(a.deps)}</td><td class="num tot">${fmt(a.total)}</td></tr>`).join('') +
+      `<td class="num" style="text-align:left">${esc(a.size)}</td><td>${esc(a.langs)}</td><td>${esc(a.license || '')}</td><td class="deps">${esc(a.deps)}</td><td class="num tot">${fmt(a.total)}</td></tr>`).join('') +
     `</tbody>`;
 
   // ---- directions
