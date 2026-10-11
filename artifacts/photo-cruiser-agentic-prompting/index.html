@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building Photo Cruiser with Claude Code: how the prompts differ</title>
+<style>
+  :root { --fg:#1d1f23; --muted:#5d6470; --bg:#fbfaf7; --card:#fff; --accent:#2b6cb0; --line:#e4e1da; --tag:#eef3fa; }
+  @media (prefers-color-scheme: dark) { :root { --fg:#e6e6e6; --muted:#a0a6b0; --bg:#16181c; --card:#1f2228; --accent:#7fb2ec; --line:#2e323a; --tag:#25303f; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; color:var(--fg); background:var(--bg); }
+  main { max-width: 900px; margin: 0 auto; padding: 3rem 1.25rem 5rem; }
+  h1 { font-size: 2rem; line-height:1.2; margin:0 0 .5rem; }
+  h2 { margin-top: 3rem; padding-bottom:.3rem; border-bottom:2px solid var(--line); }
+  h3 { margin: 0 0 .3rem; font-size:1.05rem; }
+  .lede { color: var(--muted); font-size: 1.1rem; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 1rem; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:1rem 1.1rem; }
+  .card p { margin:.3rem 0 0; }
+  .vs { font-size:.9rem; color:var(--muted); margin-top:.5rem; }
+  .ev { font-size:.88rem; color:var(--muted); margin-top:.5rem; font-style: italic; }
+  table { width:100%; border-collapse: collapse; font-size:.95rem; }
+  th, td { text-align:left; vertical-align:top; padding:.55rem .6rem; border-bottom:1px solid var(--line); }
+  th { font-size:.85rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  td:first-child { font-weight:600; white-space:nowrap; }
+  .tags span { display:inline-block; background:var(--tag); border-radius:6px; padding:.1rem .5rem; margin:.15rem .15rem; font-size:.88rem; }
+  ol.prompts li { margin:.35rem 0; }
+  q { font-style: italic; }
+  code { font: .9em ui-monospace, monospace; background:var(--tag); padding:.05rem .3rem; border-radius:4px; }
+  footer { margin-top:3rem; color:var(--muted); font-size:.85rem; }
+</style>
+</head>
+<body>
+<main>
+<h1>Building Photo Cruiser with Claude Code</h1>
+<p class="lede">An analysis of about 75 prompts I wrote across 35 Claude Code sessions (6–11 October 2026). Over those six days I compared technology stacks for a photo app with throwaway prototypes, then built it for real in Rust/iced. This page covers how the prompting differs from someone building software for the first time, which agentic engineering patterns came up, and the vocabulary involved.</p>
+
+<h2>1. How it differs from a first-time builder</h2>
+<div class="grid">
+  <div class="card"><h3>Explored before committing</h3>
+    <p>I built the same small feature in about 8 stacks (web File API, Electron, Tauri, COSMIC, Kitty terminal, egui, GTK4, Deno desktop, then iced) and compared them on evidence.</p>
+    <p class="vs">First-timer: picks one stack, or lets the AI pick, and is stuck with it.</p></div>
+  <div class="card"><h3>Weighted criteria for my real situation</h3>
+    <p>8 criteria, weighted for <q>an app for myself, but potentially for my friends who run different OSes</q>. I spotted that Slint is commercially licensed.</p>
+    <p class="vs">First-timer: judges by "does it work" and how it looks.</p></div>
+  <div class="card"><h3>Designed for testing first</h3>
+    <p>I asked which stack the agent could test fully, and for headless UI testing <q>not based on screenshots, but in deep understanding of each individual UI part</q>.</p>
+    <p class="vs">First-timer: tests by clicking around, after something breaks.</p></div>
+  <div class="card"><h3>Chose the architecture myself</h3>
+    <p><q>splits gui and lib, is able to be operated from cli and agents</q>, with a spec, an MVP scope and tickets.</p>
+    <p class="vs">First-timer: asks for "an app that does X".</p></div>
+  <div class="card"><h3>Protected the repo</h3>
+    <p><q>why you updated an rs file???</q>, <q>why a run app should write anything there</q>, <q>why sudo?</q>, <q>Why is there so many just commands?</q></p>
+    <p class="vs">First-timer: rarely notices or questions side effects.</p></div>
+  <div class="card"><h3>Thought about future features</h3>
+    <p>Before choosing a stack I checked whether it could handle Darktable-level local contrast, sharpening and Samba shares. I still kept scope down: <q>keep it reasonably simple</q>.</p>
+    <p class="vs">First-timer: overbuilds now, or hits a dead end later.</p></div>
+  <div class="card"><h3>Judged UX by feel</h3>
+    <p><q>300 milliseconds are not really great… some smarter ways to improve the feel of speed</q>. Vim keys, but <q>dont support q, system already got closing app shortcut</q>.</p>
+    <p class="vs">First-timer: takes the numbers or the defaults at face value.</p></div>
+  <div class="card"><h3>Edited the copy</h3>
+    <p><q>You are repeating yourself… Fast photo browser and Instant photo switching</q>. I cut generic claims and kept the description short.</p>
+    <p class="vs">First-timer: ships AI copy as written.</p></div>
+  <div class="card"><h3>Prompted in short bursts</h3>
+    <p>Many prompts were <q>y</q>, <q>go</q>, <q>commit</q>, <q>ship</q>. I let the agent run and steered with one-line corrections.</p>
+    <p class="vs">First-timer: over-explains every step, or approves everything without review.</p></div>
+</div>
+
+<h2>2. Agentic engineering patterns I used</h2>
+<table>
+<thead><tr><th>Pattern</th><th>What it is</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td>Parallel prototyping</td><td>Build N throwaway variants of one feature to compare options on evidence.</td><td>5, then about 8, stack prototypes side by side in subfolders</td></tr>
+<tr><td>Subagent fan-out</td><td>Hand independent work to parallel subagents and keep the main context clean.</td><td><q>Use whatever parallelization you want</q>, <q>add 2 more features in subagents to every app</q>, <q>build html in a subagent</q></td></tr>
+<tr><td>Spec-driven development</td><td>Intent, then shared spec, then tickets, then implementation, all saved as files the agent can re-read.</td><td>Intent file and shared spec, then the aiwork protocol: <code>/aiwork:to-tickets</code>, <code>/aiwork:implement</code></td></tr>
+<tr><td>Picking the stack by agent testability</td><td>Treat "can the agent verify it?" as a criterion for choosing the stack.</td><td><q>which app can best be Tested fully. By your abilities</q></td></tr>
+<tr><td>Closing the verification loop</td><td>Give the agent a way to run the app and check state, so "done" comes with evidence.</td><td>Run and verify skills, script mode, <code>--dump-state</code>, <code>just verify</code></td></tr>
+<tr><td>Headless by default, headed on request</td><td>The agent's checks run off-screen. A visible window opens only when I want to look.</td><td><q>your tests should go headless but if i need to see it life you need to open headed version</q></td></tr>
+<tr><td>Guardrails in context files</td><td>Rules and hooks keep the agent's autonomy safe.</td><td>CLAUDE.md rules (no OS input injection, scratch files in <code>/tmp</code>), a hook that blocks writes to <code>out/</code></td></tr>
+<tr><td>Autonomy budget</td><td>Tell the agent explicitly not to interrupt.</td><td><q>don't bother me with Questions unless it's absolutely Necessary</q></td></tr>
+<tr><td>Session handoff</td><td>Compress state into a handoff and continue in a fresh context.</td><td><code>/cc:handoff</code>: goal, done, conclusions, next, watch-outs</td></tr>
+<tr><td>One feature per session</td><td>Short, focused sessions keep context small.</td><td>About 20 sessions on day 2, each one feature (grid, menu, icon, install…)</td></tr>
+<tr><td>Parking work in a backlog</td><td>Keep the agent on scope and park the rest.</td><td><q>keep other work in the tickets</q></td></tr>
+<tr><td>Agent as analyst</td><td>Ask for a weighted assessment and a recommendation, not just code.</td><td>Weighted HTML comparison, <q>assess, and give directions and pick your winner</q></td></tr>
+<tr><td>Show me the variants</td><td>Have the agent render alternatives, then choose by taste.</td><td><q>show me both</q>, then <q>both are bad</q>, then a decision</td></tr>
+<tr><td>Reuse existing code</td><td>Point the agent at proven code in another repo.</td><td><q>useJustifiedLayout in ~/code/chrono-albums-2</q></td></tr>
+<tr><td>Testing on real data</td><td>Check against real media, not only fixtures.</td><td><q>verify the app is switching fast</q> on <code>~/Documents/test-media</code>, a real 20-photo folder</td></tr>
+<tr><td>Publishing artifacts</td><td>Turn analyses into shareable artifacts.</td><td><code>/publish-html</code> for the comparison (and for this page)</td></tr>
+<tr><td>Delegated delivery</td><td>One word triggers the full delivery process.</td><td><q>licence mit and ship</q></td></tr>
+<tr><td>Fast feedback loop</td><td>A live-reload window while iterating on the UI.</td><td><code>just dev</code> rebuilds on save and resumes on the same photo</td></tr>
+<tr><td>Voice input</td><td>Dictate long prompts by speech.</td><td>Long first prompts; misheard words like "Hades" (HEIC), "Igwe" (egui), "Dino" (Deno)</td></tr>
+</tbody>
+</table>
+
+<h2>3. Technical vocabulary I used</h2>
+<div class="card tags">
+  <h3>Platforms and stacks</h3>
+  <span>File API</span><span>Electron</span><span>Tauri</span><span>COSMIC</span><span>Kitty graphics protocol</span><span>Deno desktop</span><span>egui</span><span>GTK4</span><span>Slint</span><span>iced</span><span>Rust</span><span>Bun</span><span>Flutter</span>
+  <h3 style="margin-top:.8rem">Formats and domain</h3>
+  <span>AVIF</span><span>HEIC</span><span>Darktable</span><span>local contrast</span><span>sharpening</span><span>Samba shares</span><span>format conversion</span>
+  <h3 style="margin-top:.8rem">Architecture</h3>
+  <span>GUI / lib split</span><span>CLI</span><span>agent-operable</span><span>spec</span><span>intent</span><span>MVP</span><span>template</span><span>best practices</span><span>moving parts</span><span>dependencies</span><span>distributability</span><span>native look &amp; feel</span><span>licensing</span>
+  <h3 style="margin-top:.8rem">Testing and quality</h3>
+  <span>headless / headed</span><span>integration testing</span><span>agent-driven verification</span><span>golden images</span><span>latency</span><span>lag</span><span>re-rendering</span><span>benchmark</span>
+  <h3 style="margin-top:.8rem">Workflow</h3>
+  <span>git</span><span>commit</span><span>ship</span><span>README</span><span>MIT</span><span>tickets</span><span>subagents</span><span>parallelization</span><span>skills</span><span>slash commands</span><span>handoff</span><span>just</span><span>sudo</span>
+  <h3 style="margin-top:.8rem">UI and UX</h3>
+  <span>vim keybindings</span><span>shortcuts</span><span>justified layout</span><span>grid</span><span>thumbnails</span><span>full screen</span><span>transitions</span><span>perceived speed</span><span>em dash</span><span>window title</span><span>About panel</span>
+</div>
+
+<h2>4. The prompts, condensed</h2>
+<h3>Phase 1: comparing stacks (sandbox)</h3>
+<ol class="prompts">
+  <li>Build one feature (open a folder, use the arrow keys to move through photos sorted by filename) as 5 prototypes: browser File API, Electron, Tauri, COSMIC, Kitty terminal. Intent file, shared spec, subagents, verify they're runnable, short README.</li>
+  <li>Compare them by lines of code and complexity. Pushback: the web version makes you upload the folder.</li>
+  <li>Add AVIF/HEIC support and a freehand crop with a 50% darker background to every app, using subagents.</li>
+  <li>Which one can you test fully? What about Deno desktop or GTK? Native look and feel?</li>
+  <li>Can they handle format conversion, Darktable-style local contrast, sharpening, Samba? Speed and re-render lag?</li>
+  <li>Build egui, GTK4 and Deno desktop clones (no Bun or Flutter). Weighted HTML comparison on 8 criteria; pick a winner.</li>
+  <li>Challenged the result: could egui be themed native? egui feels limiting; Slint is commercially licensed. Build the iced version and update the comparison.</li>
+  <li>Write the initial spec for an iced app: GUI/lib split, operable from CLI and agents, aiwork protocol. Init git. Can iced be tested headless with real UI understanding?</li>
+</ol>
+<h3>Phase 2: the real app</h3>
+<ol class="prompts" start="9">
+  <li>Implement the base spec: MVP first, best practices, run and verify skills, subagents.</li>
+  <li>No writing to <code>out/</code>; use a temp folder outside the repo. What's left? Turn it into tickets, kept simple.</li>
+  <li>Verify switching speed on real media; 300 ms feels slow, so add transitions and improve the feel of speed. Keep the rest in tickets, then commit.</li>
+  <li>Full screen task and implementation; remove the double click. <q>What is a render golden?</q></li>
+  <li>README and GitHub description (cut the repetition), MIT licence, ship.</li>
+  <li>Why so many just commands? Headless verification, headed on request.</li>
+  <li>Window title with the full path, no em dash, a clean UI with a hidden menu, a menu shortcut, vim keys but no <code>q</code>.</li>
+  <li>A grid as the default view, file names hidden with a toggle, and an investigation of the 3-second thumbnail delay.</li>
+  <li>Justified layout reused from another repo, with margins, settings and remembered state.</li>
+  <li>Machine-wide install with an icon (<q>why sudo?</q>), the icon placed in an About entry, and arrow-key navigation in the menu.</li>
+</ol>
+
+<footer>Source: Claude Code transcripts in <code>~/sandbox/photo-cruiser</code> and <code>~/code/photo-cruiser</code>, 6–11 October 2026. Analysis generated with Claude Code.</footer>
+</main>
+</body>
+</html>
