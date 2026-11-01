@@ -4,94 +4,134 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>What is an agent</title>
+<title>Who does what in a coding agent</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     color-scheme: light dark;
-    --bg: light-dark(#f6f4ef, #121214);
-    --fg: light-dark(#151515, #f1f1f3);
-    --muted: light-dark(#6f6c66, #9a9aa3);
-    --tile: light-dark(#ffffff, #1c1c20);
-    --shadow: light-dark(#151515, #000000);
-    --accent: light-dark(#5b3cf5, #a08cff);
-    --tint: light-dark(#ece7ff, #241e44);
+    --bg: light-dark(#fbfaf6, #141414);
+    --ink: light-dark(#1d1d1d, #ececec);
+    --muted: light-dark(#77736b, #8f8f8f);
+    --or: light-dark(#e2620f, #ff8a33);
+    --or-soft: light-dark(#fff1e4, #2a1c10);
   }
   * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--fg);
-         font-family: "Bricolage Grotesque", system-ui, sans-serif; }
-  main { width: min(1160px, 100%); padding: 3rem 1.5rem; }
-  h1 { font-size: clamp(2.2rem, 6vw, 4.2rem); font-weight: 800; letter-spacing: -.04em; line-height: 1; margin: 0 0 3.5rem; }
-  h1 em { font-style: normal; color: var(--accent); }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--ink);
+         font-family: Kalam, "Comic Sans MS", cursive; }
+  main { width: min(1180px, 100%); padding: 3rem 1.5rem 4rem; }
+  h1 { font-family: Caveat, cursive; font-size: clamp(2.4rem, 6vw, 4rem); line-height: 1; margin: 0 0 3rem; }
 
-  .row { display: grid; grid-template-columns: auto 56px 1fr 56px 2.4fr; align-items: center; }
-  .tile { background: var(--tile); border: 2.5px solid var(--fg); border-radius: 16px; padding: 1.1rem 1.2rem;
-          box-shadow: 5px 5px 0 var(--shadow); }
-  .tile b { display: block; font-size: 1.45rem; font-weight: 800; letter-spacing: -.02em; }
-  .tile span { display: block; margin-top: .3rem; font-size: .9rem; color: var(--muted); line-height: 1.4; }
-  .human { text-align: center; padding: 1.1rem 1.4rem; }
-  .human svg { width: 30px; display: block; margin: 0 auto .35rem; stroke: var(--fg); }
+  /* sketchy border, drawn on a pseudo-element so text stays crisp */
+  .sk { position: relative; }
+  .sk::before { content: ""; position: absolute; inset: 0; border: 2.5px solid currentColor; border-radius: 14px 18px 12px 16px;
+                filter: url(#rough); pointer-events: none; }
 
-  .wire { color: var(--muted); display: grid; place-items: center; }
-  .wire svg { width: 40px; height: 22px; }
+  .board { display: grid; grid-template-columns: 110px 60px 1fr 84px 2.3fr; grid-template-rows: auto auto auto; align-items: center; }
+  .zone { font-family: Caveat, cursive; font-size: 1.7rem; color: var(--muted); align-self: end; margin-bottom: 1.4rem; }
+  .zone.see { grid-column: 3; }
+  .zone.work { grid-column: 5; color: var(--or); }
 
-  .agent { display: grid; grid-template-columns: 1fr 56px 1fr; align-items: center; position: relative; }
-  .agent .tile { background: var(--tint); border-color: var(--accent); box-shadow: 5px 5px 0 var(--accent); }
-  .agent .wire { color: var(--accent); }
-  .brace { position: absolute; top: calc(100% + 1rem); left: 0; right: 0; color: var(--accent); }
-  .row { margin-bottom: 6rem; }
-  .brace svg { display: block; width: 100%; height: 26px; }
-  .brace p { margin: .35rem 0 0; text-align: center; font-size: 2.2rem; font-weight: 800; letter-spacing: -.03em; }
+  .human { grid-row: 2; text-align: center; }
+  .human svg { width: 64px; display: block; margin: 0 auto; }
+  .human b, .tile b { font-size: 1.5rem; font-weight: 700; display: block; line-height: 1.1; }
 
-  @media (max-width: 860px) {
-    .row { grid-template-columns: 1fr; }
-    .wire svg { transform: rotate(90deg); margin: .6rem 0; }
-    .agent { grid-template-columns: 1fr; border-left: 4px solid var(--accent); padding-left: 1rem; position: relative; }
-    .brace { position: static; margin: 0; }
-    .row { margin-bottom: 0; }
-    .brace svg { display: none; }
-    .brace p { text-align: left; }
+  .tile { padding: 1rem 1.15rem; color: var(--ink); }
+  .tile p { margin: .35rem 0 0; font-size: 1rem; line-height: 1.3; }
+  .tile small { display: block; margin-top: .45rem; font-size: .88rem; color: var(--muted); }
+  .interface { grid-row: 2; grid-column: 3; }
+
+  .arr { grid-row: 2; display: grid; place-items: center; color: var(--ink); }
+  .arr svg { width: 44px; height: 26px; overflow: visible; }
+
+  .divider { grid-row: 1 / 3; grid-column: 4; align-self: stretch; position: relative; display: grid; place-items: center; }
+  .divider::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; border-left: 3px dashed var(--or); filter: url(#rough); }
+  .cross { grid-row: 2; grid-column: 4; position: relative; z-index: 1; }
+  .cross svg { background: var(--bg); padding: .3rem 0; box-sizing: content-box; }
+
+  .agent { grid-row: 2; grid-column: 5; color: var(--or); background: var(--or-soft); border-radius: 22px;
+           display: grid; grid-template-columns: 1fr 60px 1fr; align-items: stretch; padding: 2.2rem 1.2rem 1.3rem; }
+  .agent::before { border-width: 3px; border-radius: 22px 28px 20px 26px; }
+  .agent > .tag { position: absolute; top: -1.35rem; left: 1.2rem; font-family: Caveat, cursive; font-size: 2.4rem; font-weight: 700;
+                  background: var(--bg); padding: 0 .5rem; line-height: 1.1; transform: rotate(-3deg); }
+  .agent .tile { background: var(--bg); }
+  .agent .harness b { color: var(--or); }
+  .agent .arr { grid-row: auto; color: var(--or); }
+  .agent .tile { display: flex; flex-direction: column; }
+  .agent .tile small { margin-top: auto; padding-top: .45rem; }
+
+  .note { grid-row: 3; grid-column: 2 / 6; justify-self: center; margin-top: 2.2rem; font-family: Caveat, cursive; font-size: 1.75rem; text-align: center; }
+  .note span { color: var(--or); }
+
+  @media (max-width: 900px) {
+    .board { grid-template-columns: 1fr; }
+    .board > * { grid-column: 1 !important; grid-row: auto !important; }
+    .zone { margin: 1rem 0 .6rem; }
+    .zone.work { margin-bottom: 2.2rem; }
+    .human { order: 1; } .board > .arr:not(.cross) { order: 2; } .zone.see { order: 3; } .interface { order: 4; }
+    .divider { order: 5; } .cross { order: 5; margin-top: -3.2rem; } .zone.work { order: 6; } .agent { order: 7; } .note { order: 8; }
+    .arr svg { transform: rotate(90deg); margin: .6rem 0; }
+    .divider { padding: 1rem 0; }
+    .divider::before { top: 50%; bottom: auto; left: 0; right: 0; border-left: 0; border-top: 3px dashed var(--or); }
+    .agent { grid-template-columns: 1fr; padding-top: 2.4rem; }
+    .note { margin-top: 1.5rem; }
   }
 </style>
 </head>
 <body>
-<main>
-  <h1>What is an <em>agent</em>?</h1>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="rough" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7"/>
+    <feDisplacementMap in="SourceGraphic" scale="4"/>
+  </filter>
+  <symbol id="both" viewBox="0 0 44 26">
+    <path d="M3 8 C14 7 28 9 40 8 M34 3 L41 8 L34 13 M41 18 C30 19 16 17 4 18 M10 13 L3 18 L10 23" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+</svg>
 
-  <div class="row">
-    <div class="tile human">
-      <svg viewBox="0 0 40 44" fill="none" stroke-width="3" stroke-linecap="round"><circle cx="20" cy="11" r="8"/><path d="M5 42v-9a15 15 0 0 1 30 0v9"/></svg>
+<main>
+  <h1>Who does what in a coding agent</h1>
+
+  <div class="board">
+    <div class="zone see">what you see</div>
+    <div class="zone work">what does the work</div>
+
+    <div class="human">
+      <svg viewBox="0 0 64 120" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="filter:url(#rough)">
+        <circle cx="32" cy="18" r="13"/>
+        <path d="M32 31 L31 76 M31 76 L18 112 M31 76 L44 112 M10 46 L31 52 L54 44"/>
+      </svg>
       <b>Human</b>
     </div>
 
-    <div class="wire"><svg viewBox="0 0 40 22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h32m-5-4 5 4-5 4M36 15H4m5-4-5 4 5 4"/></svg></div>
+    <div class="arr" style="grid-column:2"><svg><use href="#both"/></svg></div>
 
-    <div class="tile">
+    <div class="tile interface sk">
       <b>Interface</b>
-      <span>T3 Code, Codex App, TUIs, GUIs</span>
+      <p>Shows the conversation and diffs, takes your input.</p>
+      <small>T3 Code, Codex App, TUIs, GUIs</small>
     </div>
 
-    <div class="wire"><svg viewBox="0 0 40 22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h32m-5-4 5 4-5 4M36 15H4m5-4-5 4 5 4"/></svg></div>
+    <div class="divider"></div>
+    <div class="arr cross"><svg><use href="#both"/></svg></div>
 
-    <div class="agent">
-      <div class="tile">
+    <div class="agent sk">
+      <span class="tag">Agent</span>
+      <div class="tile harness sk">
         <b>Harness</b>
-        <span>Claude Agent SDK, Codex CLI, Pi</span>
+        <p>Runs the loop: builds context, calls tools, edits files, asks permission.</p>
+        <small>Claude Agent SDK, Codex CLI, Pi</small>
       </div>
-      <div class="wire"><svg viewBox="0 0 40 22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h32m-5-4 5 4-5 4M36 15H4m5-4-5 4 5 4"/></svg></div>
-      <div class="tile">
+      <div class="arr"><svg><use href="#both"/></svg></div>
+      <div class="tile sk">
         <b>LLM</b>
-        <span>Claude, GPT, …</span>
-      </div>
-      <div class="brace">
-        <svg viewBox="0 0 400 26" preserveAspectRatio="none" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-          <path vector-effect="non-scaling-stroke" d="M2 2 Q2 13 20 13 H180 Q200 13 200 24 Q200 13 220 13 H380 Q398 13 398 2"/>
-        </svg>
-        <p>Agent</p>
+        <p>Predicts the next tokens. Remembers nothing.</p>
+        <small>Claude, GPT, …</small>
       </div>
     </div>
+
+    <div class="note">swap the interface → <span>the agent stays the same</span></div>
   </div>
 </main>
 </body>
