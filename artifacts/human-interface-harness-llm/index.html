@@ -3,110 +3,87 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Who talks to the model</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<meta name="color-scheme" content="light dark">
+<title>Where the agent is</title>
 <style>
   :root {
-    --paper:#f3efe6; --ink:#1c1b19; --muted:#6d685e;
-    --if:#2f5d8a; --if-bg:#e3eaf1;
-    --hn:#c4570c; --hn-bg:#fbe6d4;
-    --llm:#5a3e8c; --llm-bg:#ebe3f6;
+    color-scheme: light dark;
+    --bg: light-dark(#fafaf9, #111113);
+    --fg: light-dark(#18181b, #ececee);
+    --muted: light-dark(#71717a, #8b8b94);
+    --node: light-dark(#ffffff, #1b1b1f);
+    --edge: light-dark(#d4d4d8, #34343a);
+    --accent: light-dark(#d9480f, #ff8a3d);
+    --accent-soft: light-dark(#fff1e8, #2a1a10);
   }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.45 "Space Grotesk", system-ui, sans-serif; }
-  main { max-width:1180px; margin:0 auto; padding:3rem 1.25rem 4rem; }
-  h1 { font-size:clamp(1.8rem,4vw,2.8rem); line-height:1.05; margin:0 0 2.5rem; letter-spacing:-.02em; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--fg);
+         font: 16px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { width: min(1100px, 100%); padding: 3rem 1.5rem; }
+  h1 { font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 650; letter-spacing: -.025em; margin: 0 0 3.5rem; }
 
-  .stage { display:flex; align-items:stretch; }
-  .human { flex:0 0 110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.6rem; }
-  .human svg { width:60px; height:auto; }
-  .human b { font-size:1.1rem; }
+  .flow { display: flex; align-items: center; }
+  .node { background: var(--node); border: 1px solid var(--edge); border-radius: 14px; padding: 1.1rem 1.25rem; min-width: 0; }
+  .node h2 { margin: 0; font-size: 1.15rem; font-weight: 600; }
+  .node small { display: block; margin-top: .35rem; color: var(--muted); font-size: .82rem; line-height: 1.5; }
+  .human { border: none; background: none; padding: 0; text-align: center; flex: 0 0 auto; }
+  .human svg { display: block; width: 34px; margin: 0 auto .5rem; stroke: var(--fg); }
+  .interface { flex: 0 1 190px; }
 
-  .link { flex:0 0 96px; display:flex; flex-direction:column; justify-content:center; gap:1.4rem; padding:0 .35rem; }
-  .link div { font:500 .72rem/1.2 "IBM Plex Mono", monospace; color:var(--muted); text-align:center; }
-  .link svg { display:block; width:100%; height:12px; margin:.25rem 0; }
+  .wire { flex: 0 0 64px; height: 28px; color: var(--muted); }
+  .wire svg { width: 100%; height: 100%; }
 
-  .layer { flex:1; display:flex; align-items:stretch; border-radius:18px; padding:1.25rem; border:2px solid; }
-  .layer > header { flex:0 0 180px; display:flex; flex-direction:column; justify-content:center; }
-  .layer h2 { margin:0 0 .4rem; font-size:1.5rem; letter-spacing:-.01em; }
-  .layer p, .tasks { margin:0 0 .9rem; font-size:.92rem; color:var(--ink); }
-  .tags { display:flex; flex-wrap:wrap; gap:.35rem; margin:0; padding:0; list-style:none; }
-  .tags li { font:500 .74rem "IBM Plex Mono", monospace; padding:.15rem .5rem; border-radius:99px; background:#ffffff90; border:1px solid currentColor; }
+  .agent { position: relative; flex: 1; display: flex; align-items: center; gap: 0;
+           border: 2px solid var(--accent); background: var(--accent-soft); border-radius: 22px; padding: 2.2rem 1.4rem 1.4rem; }
+  .agent > b { position: absolute; top: -.95rem; left: 1.4rem; background: var(--accent); color: var(--bg);
+               font-size: 1.05rem; letter-spacing: .02em; padding: .25rem .9rem; border-radius: 99px; }
+  .agent .node { flex: 1; border-color: color-mix(in oklab, var(--accent) 35%, var(--edge)); }
+  .loop { flex: 0 0 92px; height: 70px; color: var(--accent); }
+  .loop svg { width: 100%; height: 100%; }
 
-  .interface { border-color:var(--if); background:var(--if-bg); color:var(--if); }
-  .harness   { border-color:var(--hn); background:var(--hn-bg); color:var(--hn); border-width:3px; }
-  .llm       { border-color:var(--llm); background:var(--llm-bg); color:var(--llm); }
-  .llm > header { flex-basis:150px; }
-
-  .tasks { padding:0; list-style:none; }
-  .tasks li::before { content:"▸ "; color:var(--hn); }
-
-  @media (max-width:900px) {
-    .stage, .layer { flex-direction:column; }
-    .human { flex-basis:auto; flex-direction:row; padding-bottom:.5rem; }
-    .human svg { width:36px; }
-    .link { flex-basis:auto; flex-direction:row; justify-content:center; gap:2.5rem; padding:.9rem 0; }
-    .link svg { transform:rotate(90deg); width:36px; margin:.5rem auto; }
-    .layer > header { flex-basis:auto; }
+  @media (max-width: 820px) {
+    .flow, .agent { flex-direction: column; align-items: stretch; }
+    .interface, .human { flex: none; }
+    .wire { flex: none; height: 48px; width: 28px; align-self: center; }
+    .wire svg { transform: rotate(90deg); width: 48px; height: 28px; margin-left: -10px; margin-top: 10px; }
+    .loop { flex: none; height: 92px; width: 70px; align-self: center; }
+    .loop svg { transform: rotate(90deg); width: 92px; height: 70px; margin-left: -11px; margin-top: 11px; }
   }
 </style>
 </head>
 <body>
 <main>
-  <h1>Who talks to the model</h1>
+  <h1>Where the agent is</h1>
 
-  <div class="stage">
-    <div class="human">
-      <svg viewBox="0 0 64 96" fill="none" stroke="#1c1b19" stroke-width="3" stroke-linecap="round">
-        <circle cx="32" cy="18" r="13"/>
-        <path d="M10 92 V62 a22 22 0 0 1 44 0 V92"/>
-      </svg>
-      <b>Human</b>
+  <div class="flow">
+    <div class="node human">
+      <svg viewBox="0 0 40 52" fill="none" stroke-width="2.2" stroke-linecap="round"><circle cx="20" cy="11" r="8"/><path d="M5 50V37a15 15 0 0 1 30 0v13"/></svg>
+      <h2>Human</h2>
     </div>
 
-    <div class="link">
-      <div>intent<svg viewBox="0 0 80 12"><path d="M2 6 H76 M70 1 L77 6 L70 11" stroke="#6d685e" stroke-width="1.6" fill="none"/></svg></div>
-      <div><svg viewBox="0 0 80 12"><path d="M78 6 H4 M10 1 L3 6 L10 11" stroke="#6d685e" stroke-width="1.6" fill="none"/></svg>diffs, answers</div>
+    <div class="wire"><svg viewBox="0 0 64 28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9h52m-5-4 5 4-5 4M58 19H6m5-4-5 4 5 4"/></svg></div>
+
+    <div class="node interface">
+      <h2>Interface</h2>
+      <small>T3 Code, Codex App,<br>TUIs, GUIs</small>
     </div>
 
-    <section class="layer interface">
-      <header>
-        <h2>Interface</h2>
-        <p>Where you type, read and approve.</p>
-        <ul class="tags"><li>T3 Code</li><li>Codex App</li><li>TUIs</li><li>GUIs</li></ul>
-      </header>
+    <div class="wire"><svg viewBox="0 0 64 28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9h52m-5-4 5 4-5 4M58 19H6m5-4-5 4 5 4"/></svg></div>
 
-      <div class="link">
-        <div>messages<svg viewBox="0 0 80 12"><path d="M2 6 H76 M70 1 L77 6 L70 11" stroke="#2f5d8a" stroke-width="1.6" fill="none"/></svg></div>
-        <div><svg viewBox="0 0 80 12"><path d="M78 6 H4 M10 1 L3 6 L10 11" stroke="#2f5d8a" stroke-width="1.6" fill="none"/></svg>events</div>
+    <section class="agent">
+      <b>Agent</b>
+      <div class="node">
+        <h2>Harness</h2>
+        <small>Claude Agent SDK, Codex CLI, Pi<br>tools · context · permissions</small>
       </div>
-
-      <section class="layer harness">
-        <header>
-          <h2>Harness</h2>
-          <ul class="tasks">
-            <li>builds the context</li>
-            <li>runs tools, edits files</li>
-            <li>asks for permission</li>
-            <li>loops until done</li>
-          </ul>
-          <ul class="tags"><li>Claude Agent SDK</li><li>Codex CLI</li><li>Pi</li></ul>
-        </header>
-
-        <div class="link">
-          <div>prompt + tools<svg viewBox="0 0 80 12"><path d="M2 6 H76 M70 1 L77 6 L70 11" stroke="#c4570c" stroke-width="1.6" fill="none"/></svg></div>
-          <div><svg viewBox="0 0 80 12"><path d="M78 6 H4 M10 1 L3 6 L10 11" stroke="#c4570c" stroke-width="1.6" fill="none"/></svg>text, tool calls</div>
-        </div>
-
-        <section class="layer llm">
-          <header>
-            <h2>LLM</h2>
-            <p>Stateless. Predicts the next tokens, nothing more.</p>
-          </header>
-        </section>
-      </section>
+      <div class="loop"><svg viewBox="0 0 92 70" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 28C22 8 70 8 82 28m-8-2 8 2 2-8"/>
+        <path d="M82 42C70 62 22 62 10 42m8 2-8-2-2 8"/>
+      </svg></div>
+      <div class="node">
+        <h2>LLM</h2>
+        <small>Claude, GPT, …<br>stateless, tokens in → tokens out</small>
+      </div>
     </section>
   </div>
 </main>
