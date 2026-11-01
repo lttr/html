@@ -3,150 +3,112 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Human → Interface → Harness → LLM</title>
+<title>Who talks to the model</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#121212; --ink:#e8e8e8; --orange:#e07a1f; --dim:#8a8a8a; }
+  :root {
+    --paper:#f3efe6; --ink:#1c1b19; --muted:#6d685e;
+    --if:#2f5d8a; --if-bg:#e3eaf1;
+    --hn:#c4570c; --hn-bg:#fbe6d4;
+    --llm:#5a3e8c; --llm-bg:#ebe3f6;
+  }
   * { box-sizing:border-box; }
-  html,body { margin:0; background:var(--bg); color:var(--ink); font-family:Kalam, "Comic Sans MS", cursive; }
-  main { max-width:1400px; margin:0 auto; padding:2rem 1rem 3rem; }
-  h1 { font-family:"Gloria Hallelujah", cursive; font-weight:400; font-size:clamp(1.3rem,3vw,2rem); margin:0 0 .25rem; }
-  p.sub { color:var(--dim); margin:0 0 1.5rem; }
-  svg { width:100%; height:auto; display:block; }
-  .ink { stroke:var(--ink); fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
-  .or { stroke:var(--orange); }
-  text { font-family:"Gloria Hallelujah", cursive; fill:var(--ink); }
-  .label { font-size:44px; }
-  .small { font-family:Kalam, cursive; font-size:19px; }
-  .orange { fill:var(--orange); }
-  .layer { cursor:pointer; transition:opacity .2s; }
-  .layer:hover .ink, .layer.active .ink { stroke-width:4; }
-  .pulse { fill:var(--orange); filter:drop-shadow(0 0 6px var(--orange)); }
-  .pulse.back { fill:#7fd1ff; filter:drop-shadow(0 0 6px #7fd1ff); }
-  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:1rem; margin-top:2rem; }
-  .card { border:2px solid #444; border-radius:10px 14px 8px 12px; padding:1rem 1.1rem; transition:border-color .2s, transform .2s; }
-  .card h2 { font-family:"Gloria Hallelujah", cursive; font-weight:400; font-size:1.3rem; margin:0 0 .4rem; }
-  .card.harness h2 { color:var(--orange); }
-  .card p { margin:.3rem 0; line-height:1.4; }
-  .card .ex { color:var(--dim); font-size:.95rem; }
-  .card.active { border-color:var(--orange); transform:translateY(-3px); }
-  .controls { margin-top:1rem; color:var(--dim); font-size:.95rem; }
-  button { font:inherit; background:none; color:var(--ink); border:2px solid #555; border-radius:8px 10px 7px 9px; padding:.2rem .8rem; cursor:pointer; }
-  button:hover { border-color:var(--orange); }
+  body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.45 "Space Grotesk", system-ui, sans-serif; }
+  main { max-width:1180px; margin:0 auto; padding:3rem 1.25rem 4rem; }
+  h1 { font-size:clamp(1.8rem,4vw,2.8rem); line-height:1.05; margin:0 0 2.5rem; letter-spacing:-.02em; }
+
+  .stage { display:flex; align-items:stretch; }
+  .human { flex:0 0 110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.6rem; }
+  .human svg { width:60px; height:auto; }
+  .human b { font-size:1.1rem; }
+
+  .link { flex:0 0 96px; display:flex; flex-direction:column; justify-content:center; gap:1.4rem; padding:0 .35rem; }
+  .link div { font:500 .72rem/1.2 "IBM Plex Mono", monospace; color:var(--muted); text-align:center; }
+  .link svg { display:block; width:100%; height:12px; margin:.25rem 0; }
+
+  .layer { flex:1; display:flex; align-items:stretch; border-radius:18px; padding:1.25rem; border:2px solid; }
+  .layer > header { flex:0 0 180px; display:flex; flex-direction:column; justify-content:center; }
+  .layer h2 { margin:0 0 .4rem; font-size:1.5rem; letter-spacing:-.01em; }
+  .layer p, .tasks { margin:0 0 .9rem; font-size:.92rem; color:var(--ink); }
+  .tags { display:flex; flex-wrap:wrap; gap:.35rem; margin:0; padding:0; list-style:none; }
+  .tags li { font:500 .74rem "IBM Plex Mono", monospace; padding:.15rem .5rem; border-radius:99px; background:#ffffff90; border:1px solid currentColor; }
+
+  .interface { border-color:var(--if); background:var(--if-bg); color:var(--if); }
+  .harness   { border-color:var(--hn); background:var(--hn-bg); color:var(--hn); border-width:3px; }
+  .llm       { border-color:var(--llm); background:var(--llm-bg); color:var(--llm); }
+  .llm > header { flex-basis:150px; }
+
+  .tasks { padding:0; list-style:none; }
+  .tasks li::before { content:"▸ "; color:var(--hn); }
+
+  @media (max-width:900px) {
+    .stage, .layer { flex-direction:column; }
+    .human { flex-basis:auto; flex-direction:row; padding-bottom:.5rem; }
+    .human svg { width:36px; }
+    .link { flex-basis:auto; flex-direction:row; justify-content:center; gap:2.5rem; padding:.9rem 0; }
+    .link svg { transform:rotate(90deg); width:36px; margin:.5rem auto; }
+    .layer > header { flex-basis:auto; }
+  }
 </style>
 </head>
 <body>
 <main>
-  <h1>Human → Interface → Harness → LLM</h1>
-  <p class="sub">The layers between you and the model when using a coding agent. Hover a layer for details.</p>
+  <h1>Who talks to the model</h1>
 
-  <svg viewBox="0 0 1400 470" role="img" aria-label="Diagram: Human talks to an Interface, which talks to a Harness, which talks to the LLM, and responses flow back.">
-    <defs>
-      <filter id="rough" x="-5%" y="-5%" width="110%" height="110%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="3"/>
-        <feDisplacementMap in="SourceGraphic" scale="3.5"/>
-      </filter>
-      <marker id="head" viewBox="0 0 20 20" refX="18" refY="10" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
-        <path d="M2 2 L18 10 L2 18" class="ink" stroke-width="2.4"/>
-      </marker>
-    </defs>
+  <div class="stage">
+    <div class="human">
+      <svg viewBox="0 0 64 96" fill="none" stroke="#1c1b19" stroke-width="3" stroke-linecap="round">
+        <circle cx="32" cy="18" r="13"/>
+        <path d="M10 92 V62 a22 22 0 0 1 44 0 V92"/>
+      </svg>
+      <b>Human</b>
+    </div>
 
-    <g filter="url(#rough)">
-      <!-- Harness column lines -->
-      <path class="ink or" d="M722 0 L724 470" stroke-width="3.5"/>
-      <path class="ink or" d="M939 0 L938 470" stroke-width="3.5"/>
+    <div class="link">
+      <div>intent<svg viewBox="0 0 80 12"><path d="M2 6 H76 M70 1 L77 6 L70 11" stroke="#6d685e" stroke-width="1.6" fill="none"/></svg></div>
+      <div><svg viewBox="0 0 80 12"><path d="M78 6 H4 M10 1 L3 6 L10 11" stroke="#6d685e" stroke-width="1.6" fill="none"/></svg>diffs, answers</div>
+    </div>
 
-      <!-- Human -->
-      <g class="layer" data-k="human">
-        <rect x="140" y="50" width="170" height="410" fill="transparent"/>
-        <text class="label" x="155" y="100">Human</text>
-        <path class="ink" d="M232 132 C205 128 190 150 194 170 C198 192 222 202 245 196 C268 190 278 170 270 152 C262 136 248 130 232 132 Z"/>
-        <path class="ink" d="M226 130 C232 126 244 128 248 134"/>
-        <path class="ink" d="M228 198 L212 330 L196 395"/>
-        <path class="ink" d="M212 330 L222 400"/>
-        <path class="ink" d="M168 250 L204 290 L262 266"/>
-        <path class="ink" d="M196 395 L180 410 M222 400 L232 412"/>
-      </g>
+    <section class="layer interface">
+      <header>
+        <h2>Interface</h2>
+        <p>Where you type, read and approve.</p>
+        <ul class="tags"><li>T3 Code</li><li>Codex App</li><li>TUIs</li><li>GUIs</li></ul>
+      </header>
 
-      <!-- Interface -->
-      <g class="layer" data-k="interface">
-        <path class="ink" d="M411 216 L626 214 L627 405 L412 406 Z" fill="#121212"/>
-        <text class="label" x="428" y="278" style="font-size:36px">Interface</text>
-        <text class="small" x="519" y="322" text-anchor="middle">T3 Code, Codex App</text>
-        <text class="small" x="519" y="346" text-anchor="middle">TUIs, GUIs</text>
-      </g>
+      <div class="link">
+        <div>messages<svg viewBox="0 0 80 12"><path d="M2 6 H76 M70 1 L77 6 L70 11" stroke="#2f5d8a" stroke-width="1.6" fill="none"/></svg></div>
+        <div><svg viewBox="0 0 80 12"><path d="M78 6 H4 M10 1 L3 6 L10 11" stroke="#2f5d8a" stroke-width="1.6" fill="none"/></svg>events</div>
+      </div>
 
-      <!-- Harness -->
-      <g class="layer" data-k="harness">
-        <rect x="726" y="0" width="210" height="470" fill="transparent"/>
-        <text class="label orange" x="830" y="277" text-anchor="middle" style="font-size:36px">Harness</text>
-        <text class="small orange" x="830" y="304" text-anchor="middle">Claude Agent SDK</text>
-        <text class="small orange" x="830" y="326" text-anchor="middle">Codex CLI</text>
-        <text class="small orange" x="830" y="348" text-anchor="middle">Pi</text>
-      </g>
+      <section class="layer harness">
+        <header>
+          <h2>Harness</h2>
+          <ul class="tasks">
+            <li>builds the context</li>
+            <li>runs tools, edits files</li>
+            <li>asks for permission</li>
+            <li>loops until done</li>
+          </ul>
+          <ul class="tags"><li>Claude Agent SDK</li><li>Codex CLI</li><li>Pi</li></ul>
+        </header>
 
-      <!-- LLM -->
-      <g class="layer" data-k="llm">
-        <rect x="1060" y="120" width="210" height="300" fill="transparent"/>
-        <text class="label" x="1160" y="168" text-anchor="middle">LLM</text>
-        <circle class="ink" cx="1161" cy="213" r="12"/>
-        <path class="ink" d="M1161 225 L1162 266"/>
-        <path class="ink" d="M1078 268 L1250 274 L1247 386 L1080 390 Z"/>
-        <circle class="ink" cx="1120" cy="310" r="20"/>
-        <circle class="ink" cx="1198" cy="310" r="20"/>
-        <path class="ink" d="M1110 362 C1130 346 1190 346 1208 360 C1190 376 1130 378 1110 362 Z"/>
-        <path class="ink" d="M1140 352 L1142 372 M1170 350 L1172 372"/>
-      </g>
+        <div class="link">
+          <div>prompt + tools<svg viewBox="0 0 80 12"><path d="M2 6 H76 M70 1 L77 6 L70 11" stroke="#c4570c" stroke-width="1.6" fill="none"/></svg></div>
+          <div><svg viewBox="0 0 80 12"><path d="M78 6 H4 M10 1 L3 6 L10 11" stroke="#c4570c" stroke-width="1.6" fill="none"/></svg>text, tool calls</div>
+        </div>
 
-      <!-- Arrows -->
-      <path id="a1" class="ink" marker-end="url(#head)" d="M280 243 C320 245 360 248 403 253"/>
-      <path id="a2" class="ink" marker-end="url(#head)" d="M633 252 C660 255 688 260 714 266"/>
-      <path id="a3" class="ink" marker-end="url(#head)" d="M948 297 C980 295 1012 292 1044 290"/>
-      <path id="b3" class="ink" marker-end="url(#head)" d="M1040 345 C1010 346 978 347 946 348"/>
-      <path id="b2" class="ink" marker-end="url(#head)" d="M718 357 C690 355 660 352 630 350"/>
-      <path id="b1" class="ink" marker-end="url(#head)" d="M404 358 C360 357 320 356 286 355"/>
-    </g>
-
-    <!-- Moving messages -->
-    <circle class="pulse" r="7" opacity="0">
-      <animateMotion id="m1" dur="0.7s" begin="0.5s; n1.end+0.8s" fill="freeze"><mpath href="#a1"/></animateMotion>
-      <animateMotion id="m2" dur="0.6s" begin="m1.end+0.5s" fill="freeze"><mpath href="#a2"/></animateMotion>
-      <animateMotion id="m3" dur="0.6s" begin="m2.end+0.5s" fill="freeze"><mpath href="#a3"/></animateMotion>
-      <set attributeName="opacity" to="1" begin="m1.begin"/>
-      <set attributeName="opacity" to="0" begin="m3.end"/>
-    </circle>
-    <circle class="pulse back" r="7" opacity="0">
-      <animateMotion id="n3" dur="0.6s" begin="m3.end+0.9s" fill="freeze"><mpath href="#b3"/></animateMotion>
-      <animateMotion id="n2" dur="0.6s" begin="n3.end+0.5s" fill="freeze"><mpath href="#b2"/></animateMotion>
-      <animateMotion id="n1" dur="0.7s" begin="n2.end+0.5s" fill="freeze"><mpath href="#b1"/></animateMotion>
-      <set attributeName="opacity" to="1" begin="n3.begin"/>
-      <set attributeName="opacity" to="0" begin="n1.end"/>
-    </circle>
-  </svg>
-
-  <div class="cards">
-    <div class="card" data-k="human"><h2>Human</h2><p>States the goal, reviews results, steers.</p></div>
-    <div class="card" data-k="interface"><h2>Interface</h2><p>Where you type and read: chat UI, diff views, terminal.</p><p class="ex">T3 Code, Codex App, TUIs, GUIs</p></div>
-    <div class="card harness" data-k="harness"><h2>Harness</h2><p>Runs the agent loop: builds the prompt and context, calls tools, applies edits, handles permissions.</p><p class="ex">Claude Agent SDK, Codex CLI, Pi</p></div>
-    <div class="card" data-k="llm"><h2>LLM</h2><p>Takes text (and tool results) in, gives text and tool calls out. Holds no state between calls.</p></div>
+        <section class="layer llm">
+          <header>
+            <h2>LLM</h2>
+            <p>Stateless. Predicts the next tokens, nothing more.</p>
+          </header>
+        </section>
+      </section>
+    </section>
   </div>
-  <p class="controls"><span style="color:var(--orange)">●</span> request &nbsp; <span style="color:#7fd1ff">●</span> response &nbsp; <button id="pause">pause</button></p>
 </main>
-<script>
-  const svg = document.querySelector('svg');
-  const items = document.querySelectorAll('[data-k]');
-  const set = k => items.forEach(el => el.classList.toggle('active', el.dataset.k === k));
-  items.forEach(el => {
-    el.addEventListener('mouseenter', () => set(el.dataset.k));
-    el.addEventListener('mouseleave', () => set(null));
-  });
-  const btn = document.getElementById('pause');
-  btn.onclick = () => {
-    if (svg.animationsPaused()) { svg.unpauseAnimations(); btn.textContent = 'pause'; }
-    else { svg.pauseAnimations(); btn.textContent = 'play'; }
-  };
-</script>
 </body>
 </html>
