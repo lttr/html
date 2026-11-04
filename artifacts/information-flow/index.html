@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How my information and tasks flow</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-size: 18px;
+
+      --bg: light-dark(#f6f4ef, #16171a);
+      --surface: light-dark(#ffffff, #1f2024);
+      --text: light-dark(#1d1d1f, #e7e5e0);
+      --muted: light-dark(#6b6a66, #9a9891);
+      --border: light-dark(#dedbd2, #34353a);
+      --edge: light-dark(#b9b5aa, #4a4b52);
+      --edge-active: light-dark(#1d1d1f, #f2efe8);
+
+      /* One color per kind of actor */
+      --kind-external: light-dark(#8a8780, #8d8b85);
+      --kind-you: light-dark(#c47a12, #e6a23c);
+      --kind-store: light-dark(#4a5a70, #8ea3c0);
+      --kind-agent: light-dark(#7b3fc4, #b48cf0);
+      --kind-routine: light-dark(#0f8a7e, #4fd1c2);
+      --kind-scheduled: light-dark(#2563c9, #6fa3f5);
+      --kind-job: light-dark(#3f8a2c, #8fd16f);
+      --kind-skill: light-dark(#c23b6a, #f07fa5);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 2rem 1.25rem 4rem;
+    }
+
+    main { max-width: 1440px; margin: 0 auto; }
+
+    /* --- Header --- */
+    header { margin-bottom: 1.5rem; max-width: 52rem; }
+    h1 { font-size: 1.7rem; line-height: 1.2; margin-bottom: 0.5rem; }
+    header p { color: var(--muted); }
+    h2 { font-size: 1.2rem; margin: 3rem 0 1rem; }
+
+    /* --- Legend --- */
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 0.4rem 1rem;
+      margin: 1rem 0 1.5rem; font-size: 0.8rem; color: var(--muted);
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+    .legend i { width: 0.7rem; height: 0.7rem; border-radius: 3px; background: var(--kind-color); }
+    .legend .line { width: 1.6rem; height: 0; border-top: 2px solid var(--muted); }
+    .legend .line.manual { border-top-style: dashed; }
+
+    /* --- Flow diagram --- */
+    .flow { position: relative; }
+
+    .flow-svg {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      pointer-events: none; overflow: visible;
+    }
+    .flow-svg path {
+      fill: none; stroke: var(--edge); stroke-width: 1.4;
+      transition: stroke 0.15s, opacity 0.15s;
+    }
+    .flow-svg path.manual { stroke-dasharray: 4 4; }
+    .flow-svg path.active { stroke: var(--edge-active); stroke-width: 2; }
+    .flow.has-focus .flow-svg path:not(.active) { opacity: 0.12; }
+    .flow-svg marker path { fill: var(--edge); stroke: none; }
+
+    .columns {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3.5rem;
+    }
+
+    .column-title {
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); margin-bottom: 0.75rem;
+    }
+    .column-nodes { display: flex; flex-direction: column; gap: 0.9rem; }
+
+    /* --- Node cards --- */
+    .node {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--kind-color);
+      border-radius: 8px;
+      padding: 0.7rem 0.85rem;
+      cursor: pointer;
+      transition: opacity 0.15s, box-shadow 0.15s, transform 0.15s;
+    }
+    .node:hover, .node:focus-visible { box-shadow: 0 2px 12px light-dark(#0001, #0006); }
+    .node:focus-visible { outline: 2px solid var(--kind-color); outline-offset: 2px; }
+    .flow.has-focus .node:not(.related) { opacity: 0.3; }
+    .node.selected { transform: translateY(-1px); box-shadow: 0 0 0 2px var(--kind-color); }
+
+    .node .kind {
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.07em;
+      color: var(--kind-color); font-weight: 600;
+    }
+    .node h3 { font-size: 0.98rem; line-height: 1.3; margin: 0.1rem 0 0.3rem; }
+    .node .now { font-size: 0.8rem; }
+    .node .now b { font-weight: 600; }
+    .node .note { font-size: 0.75rem; color: var(--muted); margin-top: 0.3rem; }
+    .node .outgoing {
+      list-style: none; padding: 0; margin-top: 0.45rem;
+      font-size: 0.72rem; color: var(--muted);
+      display: none; /* shown when selected, or always on narrow screens */
+    }
+    .node.selected .outgoing { display: block; }
+    .node .outgoing li::before { content: "→ "; }
+
+    code { font-size: 0.9em; font-family: ui-monospace, monospace; }
+
+    /* Kind → color mapping */
+    [data-kind="external"] { --kind-color: var(--kind-external); }
+    [data-kind="you"] { --kind-color: var(--kind-you); }
+    [data-kind="store"] { --kind-color: var(--kind-store); }
+    [data-kind="agent"] { --kind-color: var(--kind-agent); }
+    [data-kind="routine"] { --kind-color: var(--kind-routine); }
+    [data-kind="scheduled"] { --kind-color: var(--kind-scheduled); }
+    [data-kind="job"] { --kind-color: var(--kind-job); }
+    [data-kind="skill"] { --kind-color: var(--kind-skill); }
+
+    /* --- Rhythm table --- */
+    .rhythm { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .rhythm th, .rhythm td {
+      text-align: left; padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .rhythm th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+    .rhythm td:first-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .rhythm .chip {
+      display: inline-block; font-size: 0.68rem; padding: 0 0.4rem; border-radius: 4px;
+      color: var(--kind-color); border: 1px solid var(--kind-color);
+    }
+    .rhythm tr.retired td { color: var(--muted); text-decoration: line-through; }
+
+    .footnote { font-size: 0.8rem; color: var(--muted); margin-top: 1rem; max-width: 52rem; }
+
+    /* --- Narrow screens: stack columns, drop the arrows, list edges in cards --- */
+    @media (max-width: 960px) {
+      .columns { grid-template-columns: 1fr; gap: 2rem; }
+      .flow-svg { display: none; }
+      .node .outgoing { display: block; }
+    }
+  </style>
+</head>
+<body>
+<main>
+
+  <!-- Section: Header -->
+  <header>
+    <h1>How my information and tasks flow</h1>
+    <p>Things come in from the left, get captured, processed by me or by something scheduled, and end up kept somewhere on the right. Each box is a generic role; the line under it is what fills that role today. Hover or click a box to trace its connections. Solid arrows: a tool moves things once it runs (on a schedule, or a skill I start). Dashed arrows: I carry it over myself.</p>
+  </header>
+
+  <!-- Section: Legend (filled by script) -->
+  <div class="legend" id="legend"></div>
+
+  <!-- Section: Flow diagram (filled by script) -->
+  <section class="flow" id="flow">
+    <svg class="flow-svg" id="flow-svg" aria-hidden="true">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" />
+        </marker>
+      </defs>
+    </svg>
+    <div class="columns" id="columns"></div>
+  </section>
+
+  <!-- Section: Rhythm -->
+  <h2>When things run</h2>
+  <table class="rhythm">
+    <thead><tr><th>When</th><th>What</th><th>Kind</th><th>Implementation</th></tr></thead>
+    <tbody>
+      <tr><td>Daily 04:17</td><td>TODO triage: 5 oldest inbox tasks</td><td><span class="chip" data-kind="routine">routine</span></td><td>Claude Code routine “Todo review 2”, repos <code>research</code> + <code>notes</code>, Todoist &amp; Readwise connectors</td></tr>
+      <tr><td>Daily</td><td>Archive read articles and new highlights</td><td><span class="chip" data-kind="job">job</span></td><td><code>~/code/autopilot</code> <code>readwise-archive</code>, <code>readwise-highlights</code> (Coolify Scheduled Tasks)</td></tr>
+      <tr><td>Daily 06:00</td><td>News Digest</td><td><span class="chip" data-kind="agent">managed agent</span></td><td><code>~/code/news</code> scheduled deployment <code>news-digest-daily</code>, budget $1/run</td></tr>
+      <tr><td>Weekdays 07:50</td><td>Read-but-unanswered email check</td><td><span class="chip" data-kind="scheduled">scheduled Claude</span></td><td>“Unanswered read emails”, Gmail connector only, read-only</td></tr>
+      <tr><td>Workday morning</td><td>Agenda, worklog gaps, focus</td><td><span class="chip" data-kind="skill">skill</span></td><td><code>/day-start</code> in <code>~/code/done</code></td></tr>
+      <tr><td>Workday evening</td><td>Work summary, time entries</td><td><span class="chip" data-kind="skill">skill</span></td><td><code>/day-end</code> in <code>~/code/done</code> → <code>notes/daily/</code>, Jira, AzDO</td></tr>
+      <tr><td>Weekly</td><td>Vault review</td><td><span class="chip" data-kind="skill">skill</span></td><td><code>/weekly</code>, <code>/health</code> in <code>~/notes</code></td></tr>
+      <tr><td>Sun 23:00 / Mon 00:00 UTC</td><td>Side project upkeep (docs check, dependency update)</td><td><span class="chip" data-kind="routine">routine</span></td><td>Two <code>jedlik-nejedlik</code> routines; outside this flow, open PRs</td></tr>
+      <tr><td>Monthly</td><td>Invoice</td><td><span class="chip" data-kind="job">job</span></td><td>autopilot <code>invoice</code>: Jira timesheet → Fakturoid → Todoist task</td></tr>
+      <tr class="retired"><td>Weekdays 04:00</td><td>Morning interest digest</td><td><span class="chip" data-kind="routine">routine</span></td><td>Disabled; replaced by the News agent</td></tr>
+    </tbody>
+  </table>
+
+  <p class="footnote">Failures report back into the same system: an autopilot job that fails creates a Todoist task with the error, so the TODO inbox is also the alert channel. Routines: a green run only means the infrastructure worked; the transcript tells whether the task did.</p>
+
+</main>
+
+<script>
+  // --- Kinds of actors, in legend order ---
+  const kinds = {
+    external: 'Outside source',
+    you: 'Me, by hand',
+    store: 'Place where things live',
+    agent: 'Managed agent',
+    routine: 'Claude Code routine (cloud, cron)',
+    scheduled: 'Scheduled Claude (connectors only)',
+    job: 'Deterministic job',
+    skill: 'Claude Code skill, on demand',
+  };
+
+  const columns = [
+    { id: 'inflow', title: 'Inflow' },
+    { id: 'capture', title: 'Capture' },
+    { id: 'process', title: 'Process' },
+    { id: 'keep', title: 'Keep & act' },
+  ];
+
+  // --- Nodes: generic role (title), current implementation (now), extra detail (note) ---
+  // Within each column: what starts with me first, derived work next, external input last.
+  const nodes = [
+    // Inflow
+    { id: 'head', column: 'inflow', kind: 'you', title: 'My head',
+      now: 'Ideas, errands, thoughts' },
+    { id: 'web', column: 'inflow', kind: 'external', title: 'The open web',
+      now: 'Links found while browsing' },
+    { id: 'videos', column: 'inflow', kind: 'external', title: 'Videos &amp; talks',
+      now: '<b>YouTube</b>, watched by me',
+      note: 'When one is worth keeping, I capture its ideas by hand or with a skill.' },
+    { id: 'work', column: 'inflow', kind: 'external', title: 'Work systems',
+      now: 'Outlook calendar, Jira, Azure DevOps, git' },
+    { id: 'email', column: 'inflow', kind: 'external', title: 'Email',
+      now: '<b>Gmail</b>', note: 'Label "hotovo" marks handled threads.' },
+    { id: 'feeds', column: 'inflow', kind: 'external', title: 'Followed sources',
+      now: '10 X accounts, 3 Bluesky, 5 blogs', note: 'Single list in news/agent/sources.json.' },
+
+    // Capture
+    { id: 'notes-inbox', column: 'capture', kind: 'store', title: 'Notes inbox',
+      now: '<code>~/notes/inbox</code> (Obsidian)', note: '/note skill drops quick notes here.' },
+    { id: 'todo-inbox', column: 'capture', kind: 'store', title: 'TODO inbox',
+      now: '<b>Todoist</b> Inbox',
+      note: 'Everything actionable lands here: my captures, a task per highlight, job alerts.' },
+    { id: 'read-later', column: 'capture', kind: 'store', title: 'Read-later queue',
+      now: '<b>Readwise Reader</b>',
+      note: 'Save, read, highlight, archive. Archive and highlights are the triggers downstream.' },
+
+    // Process
+    { id: 'vault-care', column: 'process', kind: 'skill', title: 'Vault upkeep',
+      now: '<code>/inbox</code>, <code>/weekly</code>, <code>/health</code> in ~/notes',
+      note: 'Triage into PARA folders, weekly review, broken links and stale notes.' },
+    { id: 'triage', column: 'process', kind: 'routine', title: 'TODO triage',
+      now: '<b>Claude Code routine</b> “Todo review 2”, daily 04:17',
+      note: 'Shows the 5 oldest inbox tasks with a suggestion each. I reply with what to keep; the rest is closed or routed.' },
+    { id: 'publish', column: 'process', kind: 'skill', title: 'Tip pipeline',
+      now: '<code>/tip-idea</code> → <code>/tip-draft</code> → <code>/tip-publish</code> in ~/notes',
+      note: 'Ideas and drafts live in notes/projects/tips-for-agentic-engineering; publishing imports to the website and creates Buffer drafts for X, Bluesky, LinkedIn.' },
+    { id: 'research-skill', column: 'process', kind: 'skill', title: 'Research',
+      now: '<code>/research</code> in ~/code/research',
+      note: 'Iterative web research → report + optional demo.html.' },
+    { id: 'video-summary', column: 'process', kind: 'skill', title: 'Video summary',
+      now: '<code>/youtube-transcript</code> in ~/code/research',
+      note: 'Fetches the transcript and pulls out the key ideas into a summary file.' },
+    { id: 'briefing', column: 'process', kind: 'skill', title: 'Day start / day end',
+      now: '<code>/day-start</code>, <code>/day-end</code> in ~/code/done',
+      note: 'Collects Outlook, AzDO PRs, GitHub, local git, recent notes and Claude sessions. Morning: agenda, meeting reminders, worklog gaps. Evening: work summary + proposed time entries; <code>/worklog</code> posts them.' },
+    { id: 'archiver', column: 'process', kind: 'job', title: 'Reading archiver',
+      now: '<b>~/code/autopilot</b>, daily on Coolify',
+      note: 'readwise-archive + readwise-highlights. Commits to the research repo via the GitHub API, state in .autopilot/.' },
+    { id: 'invoice', column: 'process', kind: 'job', title: 'Invoicing',
+      now: '<b>~/code/autopilot</b> invoice, monthly',
+      note: 'Jira timesheet → Fakturoid invoice → task to send it.' },
+    { id: 'email-check', column: 'process', kind: 'scheduled', title: 'Unanswered email check',
+      now: '<b>Scheduled Claude</b>, weekdays 07:50',
+      note: 'Read-only: lists read threads where the last message is not mine.' },
+    { id: 'news-agent', column: 'process', kind: 'agent', title: 'News agent',
+      now: '<b>Claude Managed Agent</b>, daily 06:00',
+      note: 'Fetches posts, filters by Interests, merges into Stories, links Follow-ups. State in a memory store. Code in ~/code/news/agent.' },
+
+    // Keep & act
+    { id: 'knowledge', column: 'keep', kind: 'store', title: 'Knowledge base',
+      now: '<b>~/notes</b> (Obsidian, PARA, git auto-commit)',
+      note: 'My own notes and drafts (PARA), AI daily agendas in daily/. Pulls in the research library (research/) and both blogs (lukastrumm/, nalezeno-v-myslance/) as nested checkouts.' },
+    { id: 'todo-list', column: 'keep', kind: 'store', title: 'TODO list (kept)',
+      now: '<b>Todoist</b>: tasks labeled <code>kept</code>, “To buy” project',
+      note: 'What survives triage. This is the list I actually work from.' },
+    { id: 'blogs', column: 'keep', kind: 'store', title: 'Website &amp; blogs',
+      now: '<b>~/code/lukastrumm</b> (Eleventy on Netlify) + nalezeno-v-myslance',
+      note: 'lukastrumm.com: blog/, notes/, tips/ (tech). nalezeno-v-myslance: writing about thinking.' },
+    { id: 'social', column: 'keep', kind: 'store', title: 'Social posts',
+      now: '<b>Buffer</b> drafts → X, Bluesky, LinkedIn',
+      note: 'Drafts only; I schedule them in Buffer.' },
+    { id: 'worklog', column: 'keep', kind: 'store', title: 'Time tracking',
+      now: '<b>Jira</b> + <b>Azure DevOps</b> worklogs',
+      note: 'Posted from ~/code/done; also feeds monthly reports and the missing-hours check.' },
+    { id: 'library', column: 'keep', kind: 'store', title: 'Research library',
+      now: '<b>~/code/research</b> (VitePress on Netlify, hidden from crawlers)',
+      note: 'research/ reports, summaries/, articles/ (archived reading), highlights/.' },
+    { id: 'news-reader', column: 'keep', kind: 'store', title: 'News reader',
+      now: '<b>news.lttr.cz</b> (Nuxt PWA)', note: 'Reads Digests straight from the memory store.' },
+  ];
+
+  // --- Edges: [from, to, label, isManual] ---
+  const edges = [
+    ['feeds', 'news-agent', 'posts fetched'],
+    ['news-agent', 'news-reader', 'daily Digest'],
+    ['news-reader', 'read-later', 'save a story', true],
+    ['web', 'read-later', 'save link', true],
+    ['web', 'todo-inbox', 'share link', true],
+    ['videos', 'notes-inbox', 'write ideas by hand', true],
+    ['videos', 'video-summary', 'run the skill', true],
+    ['head', 'todo-inbox', 'quick capture', true],
+    ['head', 'notes-inbox', 'jot a note', true],
+    ['email', 'email-check', 'last 7 days'],
+    ['email-check', 'todo-inbox', 'reply needed', true],
+    ['todo-inbox', 'triage', '5 oldest a day'],
+    ['triage', 'todo-list', 'keep / to buy'],
+    ['triage', 'read-later', 'links to read'],
+    ['triage', 'research-skill', 'research it (PR)'],
+    ['triage', 'knowledge', 'tip idea (PR)'],
+    ['read-later', 'archiver', 'archive + highlight'],
+    ['archiver', 'library', 'articles, highlights'],
+    ['archiver', 'todo-inbox', 'task per highlight'],
+    ['worklog', 'invoice', 'Jira timesheet'],
+    ['invoice', 'todo-inbox', 'send invoice'],
+    ['work', 'briefing', 'calendar, tickets, git'],
+    ['briefing', 'knowledge', 'daily agenda + summary'],
+    ['knowledge', 'briefing', 'recent notes'],
+    ['briefing', 'worklog', '/worklog'],
+    ['notes-inbox', 'vault-care', 'triage'],
+    ['vault-care', 'knowledge', 'file into PARA'],
+    ['research-skill', 'library', 'research/ report'],
+    ['video-summary', 'library', 'summaries/'],
+    ['library', 'knowledge', 'cloned in'],
+    ['knowledge', 'publish', 'tip drafts'],
+    ['publish', 'blogs', 'tips/'],
+    ['publish', 'social', 'drafts'],
+    ['knowledge', 'blogs', 'blog posts', true],
+    ['head', 'publish', 'tip idea', true],
+  ];
+
+  const nodeById = new Map(nodes.map(node => [node.id, node]));
+  const columnIndex = Object.fromEntries(columns.map((column, index) => [column.id, index]));
+
+  const flowElement = document.getElementById('flow');
+  const columnsElement = document.getElementById('columns');
+  const svgElement = document.getElementById('flow-svg');
+
+  // --- Render legend ---
+  document.getElementById('legend').innerHTML = Object.entries(kinds)
+    .map(([kind, label]) => `<span data-kind="${kind}"><i></i>${label}</span>`)
+    .join('') +
+    '<span><b class="line"></b>Moved by a tool once started</span>' +
+    '<span><b class="line manual"></b>Moved by me</span>';
+
+  // --- Render columns and node cards ---
+  function renderNodes() {
+    columnsElement.innerHTML = columns.map(column => {
+      const cards = nodes.filter(node => node.column === column.id).map(node => {
+        const outgoing = edges
+          .filter(([from]) => from === node.id)
+          .map(([, to, label]) => `<li>${nodeById.get(to).title} <span>(${label})</span></li>`)
+          .join('');
+        return `
+          <article class="node" data-id="${node.id}" data-kind="${node.kind}" tabindex="0">
+            <div class="kind">${kinds[node.kind]}</div>
+            <h3>${node.title}</h3>
+            <div class="now">${node.now}</div>
+            ${node.note ? `<div class="note">${node.note}</div>` : ''}
+            ${outgoing ? `<ul class="outgoing">${outgoing}</ul>` : ''}
+          </article>`;
+      }).join('');
+      return `<div><div class="column-title">${column.title}</div><div class="column-nodes">${cards}</div></div>`;
+    }).join('');
+  }
+
+  // --- Draw edges as bezier curves between card edges ---
+  // Forward edges leave the right side and enter the left side.
+  // Backward edges (e.g. a job feeding the TODO inbox) leave left and enter right.
+  // Same-column edges bulge out to the right.
+  function drawEdges() {
+    svgElement.querySelectorAll('path.edge').forEach(path => path.remove());
+    const flowBox = flowElement.getBoundingClientRect();
+
+    const boxOf = id => {
+      const box = columnsElement.querySelector(`[data-id="${id}"]`).getBoundingClientRect();
+      return {
+        left: box.left - flowBox.left, right: box.right - flowBox.left,
+        middleY: box.top - flowBox.top + box.height / 2,
+      };
+    };
+
+    for (const [from, to, label, isManual] of edges) {
+      const source = boxOf(from);
+      const target = boxOf(to);
+      const direction = Math.sign(columnIndex[nodeById.get(to).column] - columnIndex[nodeById.get(from).column]);
+
+      let pathData;
+      if (direction > 0) {
+        const bend = (target.left - source.right) / 2;
+        pathData = `M${source.right},${source.middleY} C${source.right + bend},${source.middleY} ${target.left - bend},${target.middleY} ${target.left - 2},${target.middleY}`;
+      } else if (direction < 0) {
+        const bend = Math.max(40, (source.left - target.right) / 2);
+        pathData = `M${source.left},${source.middleY} C${source.left - bend},${source.middleY} ${target.right + bend},${target.middleY} ${target.right + 2},${target.middleY}`;
+      } else {
+        const bulge = 28;
+        pathData = `M${source.right},${source.middleY} C${source.right + bulge},${source.middleY} ${target.right + bulge},${target.middleY} ${target.right + 2},${target.middleY}`;
+      }
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', pathData);
+      path.setAttribute('marker-end', 'url(#arrow)');
+      path.classList.add('edge');
+      if (isManual) path.classList.add('manual');
+      path.dataset.from = from;
+      path.dataset.to = to;
+      const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+      title.textContent = label;
+      path.append(title);
+      svgElement.append(path);
+    }
+  }
+
+  // --- Highlighting: hovered or selected node, its edges and neighbours ---
+  let selectedNodeId = null;
+
+  function highlightNode(nodeId) {
+    flowElement.classList.toggle('has-focus', Boolean(nodeId));
+    const relatedIds = new Set(nodeId ? [nodeId] : []);
+    svgElement.querySelectorAll('path.edge').forEach(path => {
+      const isActive = nodeId && (path.dataset.from === nodeId || path.dataset.to === nodeId);
+      path.classList.toggle('active', Boolean(isActive));
+      if (isActive) { relatedIds.add(path.dataset.from); relatedIds.add(path.dataset.to); }
+    });
+    columnsElement.querySelectorAll('.node').forEach(card => {
+      card.classList.toggle('related', relatedIds.has(card.dataset.id));
+      card.classList.toggle('selected', card.dataset.id === selectedNodeId);
+    });
+  }
+
+  // Hover previews; click (or Enter) locks the selection until clicked again
+  columnsElement.addEventListener('mouseover', event => {
+    const card = event.target.closest('.node');
+    if (card && !selectedNodeId) highlightNode(card.dataset.id);
+  });
+  columnsElement.addEventListener('mouseleave', () => {
+    if (!selectedNodeId) highlightNode(null);
+  });
+
+  function toggleSelection(card) {
+    selectedNodeId = selectedNodeId === card.dataset.id ? null : card.dataset.id;
+    highlightNode(selectedNodeId);
+    drawEdgesAndKeepHighlight(); // the card grew or shrank, so arrows must follow
+  }
+  columnsElement.addEventListener('click', event => {
+    const card = event.target.closest('.node');
+    if (card) toggleSelection(card);
+  });
+  columnsElement.addEventListener('keydown', event => {
+    const card = event.target.closest('.node');
+    if (card && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); toggleSelection(card); }
+    if (event.key === 'Escape') { selectedNodeId = null; highlightNode(null); drawEdgesAndKeepHighlight(); }
+  });
+
+  function drawEdgesAndKeepHighlight() {
+    drawEdges();
+    highlightNode(selectedNodeId);
+  }
+
+  renderNodes();
+  drawEdgesAndKeepHighlight();
+  new ResizeObserver(drawEdgesAndKeepHighlight).observe(columnsElement);
+</script>
+</body>
+</html>
